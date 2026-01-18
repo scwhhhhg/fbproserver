@@ -1,4 +1,4 @@
-# FBPro Blaster - Server-Side Code Splitting
+# FBPro Blaster - SECURE SERVER (v2.1)
 
 This folder contains a modified version of the FBPro Blaster bot where critical logic and selectors are removed from the local source code and moved to a remote server (Cloudflare Workers).
 
