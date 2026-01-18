@@ -1,0 +1,7 @@
+name = "fbproblaster"
+main = "worker.js"
+compatibility_date = "2024-04-03"
+
+# Any secrets or environment variables should be managed in Cloudflare Dashboard
+[vars]
+# AUTH_SECRET = "SET_THIS_IN_CLOUDFLARE"

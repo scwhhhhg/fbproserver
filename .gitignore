@@ -1,0 +1,11 @@
+node_modules/
+.DS_Store
+*.exe
+*.log
+artifacts/
+temp/
+accounts/
+.env
+stubs.txt
+temp-obfuscate.js
+worker.zip

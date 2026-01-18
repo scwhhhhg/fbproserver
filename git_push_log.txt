@@ -1,0 +1,90 @@
+git : remote: error: GH013: 
+Repository rule violations 
+found for refs/heads/main.  
+      
+At line:1 char:85
++ ... GitHub push 
+protection"; git push -u 
+origin main --force 2>&1 | 
+Out-F ...
++                           
+   ~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
+    + CategoryInfo          
+    : NotSpecified: (remot  
+  e: error: ...s/main.      
+      :String) [], Remot    
+eException
+    + FullyQualifiedErrorId 
+    : NativeCommandError
+ 
+remote: 
+remote: - GITHUB PUSH 
+PROTECTION        
+remote:   ??????????????????
+????????????????????????????
+????????????????????????????
+????????????????????????????
+?????????????????????       
+ 
+remote:     Resolve the 
+following violations before 
+pushing again        
+remote: 
+remote:     - Push cannot 
+contain secrets        
+remote: 
+remote:             
+remote:      (?) Learn how 
+to resolve a blocked push   
+     
+remote:      https://docs.gi
+thub.com/code-security/secre
+t-scanning/working-with-secr
+et-scanning-and-push-protect
+ion/working-with-push-protec
+tion-from-the-command-line#r
+esolving-a-blocked-push     
+   
+remote:             
+remote:             
+remote:       ?????? 
+Airtable Personal Access 
+Token ??????????????????????
+????????????????????????????
+??????????        
+remote:        locations:   
+     
+remote:          - commit: c
+50b9735b25fe05bb40f3c6a3c44d
+7868d4deb5b        
+remote:            path: 
+marmosm.js:5        
+remote:          - commit: c
+50b9735b25fe05bb40f3c6a3c44d
+7868d4deb5b        
+remote:            path: 
+net-client.js:5        
+remote:             
+remote:        (?) To push, 
+remove secret from 
+commit(s) or follow this 
+URL to allow the secret.    
+    
+remote:        https://githu
+b.com/scwhhhhg/fbproserver/s
+ecurity/secret-scanning/unbl
+ock-secret/38RQTX9Gkzmj5EdXu
+xH4Cp4d1rA        
+remote:             
+remote: 
+remote: 
+To https://github.com/scwhhh
+hg/fbproserver.git
+ ! [remote rejected] main 
+-> main (push declined due 
+to repository rule 
+violations)
+error: failed to push some 
+refs to 'https://github.com/
+scwhhhhg/fbproserver.git'
