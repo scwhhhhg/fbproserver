@@ -1,6 +1,7 @@
 name = "fbproblaster"
 main = "worker.js"
 compatibility_date = "2024-04-03"
+account_id = "9ec7cd5f0ffbbf6ac291ee57aae63a4c"
 
 # Any secrets or environment variables should be managed in Cloudflare Dashboard
 [vars]
