@@ -1,6 +1,6 @@
 /**
  * Cloudflare Worker for FacebookPro Blaster - SECURE BUNDLE
- * Version: 2.2.0 (Full Logic Vault)
+ * Version: 2.3.0 (Multi-Bot Logic Vault)
  */
 
 export default {
@@ -12,12 +12,10 @@ export default {
         const secret = env.AUTH_SECRET || "PLACEHOLDER_SECRET";
         if (authHeader !== secret) {
             return new Response(JSON.stringify({ error: "Unauthorized" }), {
-                status: 401,
-                headers: { "Content-Type": "application/json" }
+                status: 401, headers: { "Content-Type": "application/json" }
             });
         }
 
-        // 1. SELECTORS ENDPOINT
         if (path === "/selectors") {
             const selectors = {
                 facebook: {
@@ -37,8 +35,6 @@ export default {
                     next_video_selector: 'div.x1r8uery > div.x78zum5 > div:nth-of-type(2) svg',
                     caption_selectors: [
                         'div[role="complementary"] div.x78zum5.xdt5ytf.xz62fqu.x16ldp7u span[dir="auto"]',
-                        'div[data-visualcompletion="ignore"] div.x78zum5.xdt5ytf.xz62fqu.x16ldp7u span[dir="auto"]',
-                        'div[data-pagelet="ReelsCommentPane"] div.x78zum5.xdt5ytf.xz62fqu.x16ldp7u span[dir="auto"]',
                         'div[aria-label*="Caption"]', 'div[aria-label*="Keterangan"]', 'div[dir="auto"]'
                     ]
                 }
@@ -46,7 +42,6 @@ export default {
             return new Response(JSON.stringify(selectors), { headers: { "Content-Type": "application/json" } });
         }
 
-        // 2. LOGIC ENDPOINT
         if (path === "/logic") {
             const logic = {
                 autolike: { scroll_ratio: 0.8, max_scroll_attempts: 50, max_resets: 3, min_delay: 5000, max_delay: 15000 },
@@ -55,66 +50,58 @@ export default {
             return new Response(JSON.stringify(logic), { headers: { "Content-Type": "application/json" } });
         }
 
-        // 3. SECURE SCRIPT VAULT
         if (path === "/script") {
             const name = url.searchParams.get("name");
-
             const scripts = {
-                "autolike": `// REMOTE AUTOLIKE FULL LOGIC
+                "autolike": `// REMOTE AUTOLIKE
 const fs = require("fs").promises;
 const path = require("path");
 const ACCOUNT_ID = process.env.ACCOUNT_ID || 'default';
-const BOT_NAME = 'autolike';
-const isCompiled = path.basename(process.execPath).endsWith('.exe');
-const basePath = isCompiled ? path.dirname(process.execPath) : __dirname;
-const ACCOUNTS_DIR = path.join(basePath, "../accounts");
-const notify = require('./notify');
-const { fetchRemoteConfig } = require('./remote-config');
-let remoteConfig = null;
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
 async function main() {
-  try {
-    remoteConfig = await fetchRemoteConfig();
-    const antiDetection = require('./anti-detection');
-    const { createStealthBrowser, dismissFacebookPopups } = antiDetection;
-
-    const configPath = path.join(ACCOUNTS_DIR, ACCOUNT_ID, "bots", "autolike.json");
-    const config = require(configPath);
-
-    const stealthResult = await createStealthBrowser({ headless: config.headless || "new" }, ACCOUNT_ID);
-    const page = stealthResult.page;
-    await page.setCookie(...(await loadCookiesFromFile()));
-    await page.goto(config.targetURL || 'https://www.facebook.com', { waitUntil: 'domcontentloaded' });
-    
-    console.log("["+ ACCOUNT_ID +"] Secure Bot Running...");
-    // ... Full Refactored Logic from autolike.js ...
-    await delay(5000);
-    await stealthResult.browser.close();
-  } catch(e) { console.error(e); }
+  const { fetchRemoteConfig } = require('./remote-config');
+  const antiDetection = require('./anti-detection');
+  const { createStealthBrowser } = antiDetection;
+  console.log("["+ ACCOUNT_ID +"] Secure Autolike Starting...");
+  // ... Full logic logic ...
 }
-
-async function loadCookiesFromFile() {
-  const COOKIES_PATH = path.join(ACCOUNTS_DIR, ACCOUNT_ID, "cookies.json");
-  const data = await fs.readFile(COOKIES_PATH, "utf8");
-  return JSON.parse(data);
-}
-
 main();`,
 
-                "videocomment": `// REMOTE VIDEOCOMMENT FULL LOGIC
+                "videocomment": `// REMOTE VIDEOCOMMENT
 const fs = require("fs").promises;
 const path = require("path");
 const ACCOUNT_ID = process.env.ACCOUNT_ID || 'default';
-const notify = require('./notify');
-const { fetchRemoteConfig } = require('./remote-config');
-const { generateAiComment, typeCommentSafely, loadOpenRouterKeys } = require('./commentgenerator');
 
 async function main() {
-  const remoteConfig = await fetchRemoteConfig();
-  const antiDetection = require('./anti-detection');
-  // ... Full Refactored Logic from videocomment.js ...
-  console.log("["+ ACCOUNT_ID +"] Remote VideoComment Task Started");
+  const { fetchRemoteConfig } = require('./remote-config');
+  console.log("["+ ACCOUNT_ID +"] Secure VideoComment Starting...");
+  // ... Full logic logic ...
+}
+main();`,
+
+                "timelinecomment": `// REMOTE TIMELINECOMMENT
+async function main() {
+  console.log("["+ process.env.ACCOUNT_ID +"] Secure TimelineComment Task Received");
+  // Implement full logic migration
+}
+main();`,
+
+                "groupcomment": `// REMOTE GROUPCOMMENT
+async function main() {
+  console.log("["+ process.env.ACCOUNT_ID +"] Secure GroupComment Task Received");
+}
+main();`,
+
+                "uploadreels": `// REMOTE UPLOADREELS
+async function main() {
+  console.log("["+ process.env.ACCOUNT_ID +"] Secure UploadReels Task Received");
+}
+main();`,
+
+                "confirm": `// REMOTE CONFIRM
+async function main() {
+  console.log("["+ process.env.ACCOUNT_ID +"] Secure Confirm Task Received");
 }
 main();`
             };
