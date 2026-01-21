@@ -5801,7 +5801,30 @@ async function applyLocalFaceSwap(targetImagePath) {
   console.log(\`[\${ACCOUNT_ID}] 🐍 Running Local Face Swap (InsightFace) via spawn...\`);
 
   return new Promise((resolve) => {
-    const pythonProcess = spawn('py', ['-3.12', '-u', scriptPath, faceRefPath, targetImagePath, outputPath]);
+    // Try to find Python 3.12 executable
+    const os = require('os');
+    const possiblePythonPaths = [
+      path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'Python', 'Python312', 'python.exe'), // User install
+      'C:\\\\Python312\\\\python.exe', // System install
+      'python3.12', // PATH
+      'python3', // PATH
+      'python' // Fallback
+    ];
+
+    let pythonCmd = 'py';
+    let pythonArgs = ['-3.12', '-u', scriptPath, faceRefPath, targetImagePath, outputPath];
+
+    // Check if any full path exists
+    for (const pyPath of possiblePythonPaths) {
+      if (pyPath.includes('\\\\') && fsSync.existsSync(pyPath)) {
+        pythonCmd = pyPath;
+        pythonArgs = ['-u', scriptPath, faceRefPath, targetImagePath, outputPath]; // Remove -3.12 flag
+        console.log(\`[\${ACCOUNT_ID}] 🐍 Using Python at: \${pyPath}\`);
+        break;
+      }
+    }
+
+    const pythonProcess = spawn(pythonCmd, pythonArgs);
 
     pythonProcess.stdout.on('data', (data) => {
       const msg = data.toString().trim();
