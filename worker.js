@@ -4939,11 +4939,12 @@ main().catch(error => {
 const ACCOUNT_ID = global.ACCOUNT_ID || process.env.ACCOUNT_ID || 'default';
 const BOT_NAME = global.BOT_NAME || 'bot';
 // End adaptation
-// updatestatus.js - IMPROVED VERSION WITH PHOTO FALLBACK & LOGGING
 const puppeteer = require("puppeteer");
 const fs = require("fs").promises;
+const fsSync = require("fs");
 const path = require("path");
 const axios = require("axios");
+const { PythonShell } = require('python-shell');
 
 // ========================================
 // CONFIGURATION
@@ -4984,10 +4985,25 @@ try {
     },
     photo_settings: {
       enabled: true,
+      use_pollinations: true,
+      use_local_faceswap: true, // Dinonaktifkan sementara oleh user, sekarang aktif kembali
       use_local_photos: true,
-      orientation: "landscape",
+      orientation: "portrait",
       per_page: 10,
       content_filter: "high"
+    },
+    pollinations_settings: {
+      model: "flux",
+      width: 1280,
+      height: 1600,
+      nologo: true,
+      enhance: true
+    },
+    nanobanana_settings: {
+      face_reference: "face_reference.jpg",
+      model: "imagen-3.0-generate-001",
+      negative_prompt: "deformed, blurry, bad anatomy, bad face, text, watermark",
+      aspect_ratio: "1:1"
     },
     memory_settings: {
       max_history: 50,
@@ -5285,6 +5301,7 @@ async function loadUnsplashKeys() {
   return loadKeys(UNSPLASH_KEY_PATH);
 }
 
+
 function getTimeContext() {
   const now = new Date();
   const hours = now.getHours();
@@ -5323,6 +5340,35 @@ function getTimeContext() {
     dayType,
     fullTime: \`\${hours.toString().padStart(2, '0')}:\${minutes.toString().padStart(2, '0')}\`
   };
+}
+
+async function generateWithPollinationsText(basePrompt, memory) {
+  try {
+    const memoryPrompt = memory.getMemoryPrompt();
+    const fullPrompt = basePrompt + memoryPrompt;
+
+    console.log(\`[\${ACCOUNT_ID}] 🤖 Trying Pollinations.ai (openai)...\`);
+    const encodedPrompt = encodeURIComponent(fullPrompt);
+    const url = \`https://text.pollinations.ai/\${encodedPrompt}?model=openai\`;
+
+    const headers = {};
+    if (config.pollinations_settings?.api_key) {
+      headers['Authorization'] = \`Bearer \${config.pollinations_settings.api_key}\`;
+    }
+
+    const response = await axios.get(url, { headers, timeout: 30000 });
+
+    const text = response.data?.trim();
+    if (!text) {
+      throw new Error('Empty response from Pollinations');
+    }
+
+    console.log(\`[\${ACCOUNT_ID}] ✅ Pollinations.ai success\`);
+    return { status: text, provider: 'Pollinations.ai (openai)' };
+  } catch (error) {
+    console.log(\`[\${ACCOUNT_ID}] ⚠️ Pollinations.ai failed: \${error.message}\`);
+    throw error;
+  }
 }
 
 async function generateWithGemini(basePrompt, memory) {
@@ -5372,6 +5418,26 @@ async function generateWithGemini(basePrompt, memory) {
       return { status: text, provider: 'Gemini' };
 
     } catch (error) {
+      if (error.response?.status === 429) {
+        console.log(\`[\${ACCOUNT_ID}] ⚠️ Gemini key \${i + 1} rate limited (429). Waiting 5s...\`);
+        await delay(5000);
+        // Retry once for this key
+        try {
+          const retryResponse = await axios.post(
+            \`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=\${apiKey}\`,
+            {
+              contents: [{ parts: [{ text: fullPrompt }] }],
+              generationConfig: { temperature: 0.9, maxOutputTokens: 200 }
+            },
+            { timeout: 30000 }
+          );
+          const text = retryResponse.data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+          if (text) {
+            console.log(\`[\${ACCOUNT_ID}] ✅ Gemini success on retry\`);
+            return { status: text, provider: 'Gemini' };
+          }
+        } catch (e) { }
+      }
       const errMsg = error.response?.data?.error?.message || error.message;
       const errCode = error.response?.status;
       console.log(\`[\${ACCOUNT_ID}] ⚠️ Gemini key \${i + 1} failed (\${errCode}): \${errMsg}\`);
@@ -5454,10 +5520,10 @@ async function generateTimeAwareStatus(context, memory) {
 - Tipe hari: \${context.dayType}
 
 🎯 INSTRUKSI:
-- Buat status yang SANGAT RELEVAN dengan waktu \${context.timeOfDay}
-- Status harus natural dan sesuai aktivitas di jam \${context.fullTime}
-- Gunakan konteks \${context.dayType} dalam status
-- Jangan tulis meta-text seperti "Status:" atau "Caption:"
+- Buat status yang SANGAT RELEVAN dengan suasana \${context.timeOfDay}
+- Status harus natural, santai (relaxed), dan variatif.
+- JANGAN menyebutkan jam secara spesifik (seperti "jam \${context.fullTime}"), gunakan penyebutan waktu umum saja.
+- Gunakan konteks \${context.dayType} dalam status dengan gaya bercerita yang ringan.
 - Langsung tulis statusnya saja!
 
 CONTOH STYLE (jangan copy, buat yang baru!):
@@ -5470,7 +5536,6 @@ CONTOH STYLE (jangan copy, buat yang baru!):
 
   const maxAttempts = 5;
   let attempts = 0;
-  let geminiTried = false;
 
   while (attempts < maxAttempts) {
     attempts++;
@@ -5478,21 +5543,22 @@ CONTOH STYLE (jangan copy, buat yang baru!):
     try {
       let result;
 
-      // Try Gemini only once, then switch to OpenRouter
-      if (!geminiTried) {
+      // Priority: Pollinations (OpenAI) -> OpenRouter -> Gemini
+      try {
+        console.log(\`[\${ACCOUNT_ID}] 🔄 Attempt \${attempts}/\${maxAttempts}: Trying Pollinations.ai...\`);
+        result = await generateWithPollinationsText(basePrompt, memory);
+      } catch (pollError) {
         try {
-          console.log(\`[\${ACCOUNT_ID}] 🔄 Attempt \${attempts}/\${maxAttempts}: Trying Gemini...\`);
-          result = await generateWithGemini(basePrompt, memory);
-          geminiTried = true;
-        } catch (geminiError) {
-          console.log(\`[\${ACCOUNT_ID}] 📱 Gemini unavailable, switching to OpenRouter permanently\`);
-          geminiTried = true; // Don't try Gemini again
+          console.log(\`[\${ACCOUNT_ID}] 🤖 Pollinations failed, trying OpenRouter...\`);
           result = await generateWithOpenRouter(basePrompt, memory);
+        } catch (orError) {
+          console.log(\`[\${ACCOUNT_ID}] 🤖 OpenRouter failed, falling back to Gemini...\`);
+          try {
+            result = await generateWithGemini(basePrompt, memory);
+          } catch (geminiError) {
+            throw new Error('All text generation providers failed');
+          }
         }
-      } else {
-        // Use OpenRouter for all subsequent attempts
-        console.log(\`[\${ACCOUNT_ID}] 🔄 Attempt \${attempts}/\${maxAttempts}: Using OpenRouter...\`);
-        result = await generateWithOpenRouter(basePrompt, memory);
       }
 
       // Clean up the status
@@ -5637,10 +5703,164 @@ async function downloadFromUnsplash(keywords, unsplashKeys) {
   throw new Error('All Unsplash keys failed');
 }
 
-async function selectPhoto(photoLogger) {
+async function translateStatusToImagePrompt(statusText) {
+  const prompt = \`Ubah status Facebook ini menjadi prompt gambar yang sangat detail dalam Bahasa Indonesia untuk hasil foto DSLR yang realistis.
+  Gambarkan adegan spesifik dengan seorang wanita muda muslim Indonesia berusia 20-an yang mengenakan hijab modis/syari, tekstur kulit nyata, pencahayaan alami, dan fokus tajam.
+  Hasil harus bergaya foto mentah (raw photo), 8k UHD, sangat detail, tanpa filter artistik, dan tidak terlihat dreamy atau lembut (soft).
+  Status: "\${statusText}"
+  Format hasil langsung berupa satu paragraf prompt deskriptif saja. Tanpa teks tambahan.\`;
+
+  try {
+    const result = await generateWithPollinationsText(prompt, { getMemoryPrompt: () => "" });
+    return result.status;
+  } catch (e) {
+    try {
+      const result = await generateWithOpenRouter(prompt, { getMemoryPrompt: () => "" });
+      return result.status;
+    } catch (e2) {
+      try {
+        const result = await generateWithGemini(prompt, { getMemoryPrompt: () => "" });
+        return result.status;
+      } catch (e3) {
+        return \`A young woman in her 20s, natural lifestyle setting, high quality, no face visible, consistent with status: \${statusText}\`;
+      }
+    }
+  }
+}
+
+async function generateImagePollinations(imagePrompt) {
+  try {
+    const model = config.pollinations_settings?.model || 'flux';
+    const width = config.pollinations_settings?.width || 1024;
+    const height = config.pollinations_settings?.height || 1280;
+    const seed = Math.floor(Math.random() * 1000000);
+
+    // Construct Pollinations URL
+    // Safe prompt encoding
+    const safePrompt = encodeURIComponent(imagePrompt.substring(0, 1500));
+    const url = \`https://image.pollinations.ai/prompt/\${safePrompt}?model=\${model}&width=\${width}&height=\${height}&seed=\${seed}&nologo=true&enhance=true\`;
+
+    console.log(\`[\${ACCOUNT_ID}] 🐝 Generating image with Pollinations.ai (\${model})...\`);
+
+    const headers = { 'User-Agent': 'FBProBlaster/1.0' };
+    if (config.pollinations_settings?.api_key) {
+      headers['Authorization'] = \`Bearer \${config.pollinations_settings.api_key}\`;
+    }
+
+    // Download directly
+    const response = await axios.get(url, {
+      responseType: 'arraybuffer',
+      headers: headers,
+      timeout: 60000
+    });
+
+    const fileName = \`pollinations_\${Date.now()}.jpg\`;
+    const filePath = path.join(TEMP_PHOTOS_DIR, fileName);
+    await fs.writeFile(filePath, response.data);
+
+    console.log(\`[\${ACCOUNT_ID}] 🐝 Image generated successfully!\`);
+    return filePath;
+
+  } catch (error) {
+    console.log(\`[\${ACCOUNT_ID}] ❌ Pollinations Generation failed: \${error.message}\`);
+    return null;
+  }
+}
+
+// generateImageHuggingFace removed to use Pollinations exclusively
+
+const { spawn } = require('child_process');
+
+async function applyLocalFaceSwap(targetImagePath) {
+  const scriptPath = path.join(__dirname, 'faceswap.py');
+  const faceRefName = config.nanobanana_settings?.face_reference || "face_reference.jpg";
+  const faceRefPath = path.join(ACCOUNTS_DIR, ACCOUNT_ID, faceRefName);
+
+  if (!fsSync.existsSync(faceRefPath)) {
+    console.log(\`[\${ACCOUNT_ID}] 🐍 ❌ Face reference not found: \${faceRefPath}\`);
+    return targetImagePath;
+  }
+
+  const outputPath = path.join(TEMP_PHOTOS_DIR, \`swapped_local_\${Date.now()}.jpg\`);
+
+  console.log(\`[\${ACCOUNT_ID}] 🐍 Running Local Face Swap (InsightFace) via spawn...\`);
+
+  return new Promise((resolve) => {
+    const pythonProcess = spawn('py', ['-3.12', '-u', scriptPath, faceRefPath, targetImagePath, outputPath]);
+
+    pythonProcess.stdout.on('data', (data) => {
+      const msg = data.toString().trim();
+      if (msg) console.log(\`[\${ACCOUNT_ID}] 🐍 Python STDOUT: \${msg}\`);
+    });
+
+    pythonProcess.stderr.on('data', (data) => {
+      const msg = data.toString().trim();
+      if (msg) console.log(\`[\${ACCOUNT_ID}] 🐍 Python STDERR: \${msg}\`);
+    });
+
+    pythonProcess.on('error', (err) => {
+      console.log(\`[\${ACCOUNT_ID}] 🐍 ❌ Spawn Error: \${err.message}\`);
+      resolve(targetImagePath);
+    });
+
+    pythonProcess.on('close', (code) => {
+      console.log(\`[\${ACCOUNT_ID}] 🐍 Python process closed with code \${code}\`);
+      if (code === 0 && fsSync.existsSync(outputPath)) {
+        console.log(\`[\${ACCOUNT_ID}] 🐍 ✅ Local Face Swap Successful!\`);
+        resolve(outputPath);
+      } else {
+        console.log(\`[\${ACCOUNT_ID}] 🐍 ⚠️ Face Swap Failed (Code: \${code})\`);
+        resolve(targetImagePath);
+      }
+    });
+  });
+}
+
+// Replaces applyFaceSwap with local version logic where needed
+async function applyFaceSwap(targetImagePath) {
+  if (config.photo_settings?.use_local_faceswap) {
+    return await applyLocalFaceSwap(targetImagePath);
+  }
+  // Fallback to HF if local disabled (legacy code logic kept optional)
+  return targetImagePath;
+}
+
+async function selectPhoto(photoLogger, statusText = '') {
   if (config.photo_settings?.enabled === false) {
     console.log(\`[\${ACCOUNT_ID}] 📷 Photos disabled in config\`);
     return { filePath: null, attribution: { photographer: 'Text Only', source: 'none' } };
+  }
+
+  // Priority 1: Pollinations AI + Face Swap
+  if (config.photo_settings?.use_pollinations !== false) {
+    console.log(\`[\${ACCOUNT_ID}] 🚀 Starting Pollinations.ai image workflow...\`);
+    const imagePrompt = await translateStatusToImagePrompt(statusText);
+    console.log(\`[\${ACCOUNT_ID}] ✍️  Image Prompt: "\${imagePrompt}"\`);
+
+    let imagePath = await generateImagePollinations(imagePrompt);
+    if (imagePath) {
+      console.log(\`[\${ACCOUNT_ID}] 🚀 Image generated, applying face swap...\`);
+      // Apply Face Swap (using local script)
+      imagePath = await applyFaceSwap(imagePath);
+      console.log(\`[\${ACCOUNT_ID}] 🚀 Face swap step finished, returning image.\`);
+      return {
+        filePath: imagePath,
+        attribution: { photographer: 'Pollinations.ai + Local FaceSwap', source: 'pollinations' }
+      };
+    }
+    console.log(\`[\${ACCOUNT_ID}] ⚠️  Pollinations Workflow failed, trying fallback...\`);
+  }
+
+  // Priority 2: Hugging Face (FLUX + Face Swap) - Backup
+  if (config.photo_settings?.use_huggingface === true) {
+    // ... logic for HF generation if explicitly enabled as backup
+  }
+
+  // Priority 2: NanoBanana AI Generation (Redirected to Pollinations)
+  // Legacy generateImageWithNanoBanana call removed as it's now integrated in Pollinations flow above
+  if (config.photo_settings?.use_nanobanana === true && config.photo_settings?.use_pollinations === false) {
+    // If someone explicitly wants nanobanana but Pollinations is off, we could implement it here
+    // but the user wants both together.
   }
 
   // Default to true if undefined (try local photos by default)
@@ -5729,35 +5949,26 @@ async function clickTextArea(page) {
 async function uploadPhoto(page, imagePath) {
   console.log(\`[\${ACCOUNT_ID}] 📤 Uploading photo...\`);
 
-  const photoButtonSelectors = [
-    'input[type="file"][accept*="photo"]',
-    'input[type="file"]'
-  ];
+  try {
+    // Wait for file input to exist
+    const fileInputSelector = 'input[type="file"]';
+    await page.waitForSelector(fileInputSelector, { timeout: 15000 });
 
-  for (const selector of photoButtonSelectors) {
-    try {
-      const el = await page.$(selector);
-      if (el) {
-        await el.click();
-        await delay(3000);
-        break;
-      }
-    } catch (e) {
-      continue;
+    const fileInput = await page.$(fileInputSelector);
+    if (!fileInput) {
+      console.log(\`[\${ACCOUNT_ID}] ⚠️ File input not found\`);
+      return false;
     }
-  }
 
-  const fileInput = await page.$('input[type="file"]');
-  if (!fileInput) {
-    console.log(\`[\${ACCOUNT_ID}] ⚠️ File input not found, skipping photo upload\`);
+    await fileInput.uploadFile(imagePath);
+    console.log(\`[\${ACCOUNT_ID}] ✅ Photo uploaded\`);
+
+    await delay(config.typing_delays?.after_photo_upload || 5000);
+    return true;
+  } catch (error) {
+    console.log(\`[\${ACCOUNT_ID}] ❌ Photo upload failed: \${error.message}\`);
     return false;
   }
-
-  await fileInput.uploadFile(imagePath);
-  console.log(\`[\${ACCOUNT_ID}] ✅ Photo uploaded\`);
-
-  await delay(config.typing_delays?.after_photo_upload || 5000);
-  return true;
 }
 
 async function addMentions(page, settings = {}) {
@@ -6083,7 +6294,7 @@ async function main() {
     });
     await memory.save();
 
-    const photoInfo = await selectPhoto(photoLogger);
+    const photoInfo = await selectPhoto(photoLogger, result.status);
 
     if (!photoInfo.filePath) {
       console.log(\`[\${ACCOUNT_ID}] 📝 Will post TEXT ONLY\`);
