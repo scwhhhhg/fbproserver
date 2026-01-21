@@ -26,6 +26,7 @@ Module.prototype.require = function (id) {
   } catch (err) {
     // If resolution failed, try without .js extension (for encrypted files)
     const dirname = path.dirname(this.filename);
+
     const basename = path.basename(id, '.js');
     resolvedPath = path.join(dirname, basename);
 
@@ -64,6 +65,12 @@ Module.prototype.require = function (id) {
       decryptedModuleCache.set(resolvedPath, newModule.exports);
 
       return newModule.exports;
+    } else {
+      // Plain wrapper or other file. Let original require handle it by path.
+      // This is SAFEST for bytecode (.jsc) and plain wrappers.
+      const result = originalRequire.call(this, resolvedPath);
+      decryptedModuleCache.set(resolvedPath, result);
+      return result;
     }
   } catch (err) {
     // If file doesn't exist or can't be read, fall through to original require
@@ -118,16 +125,8 @@ function getEncryptionKeysSync() {
 
 const fs = require("fs").promises;
 const { spawn } = require("child_process");
-const readline = require('readline');
-const { CookieGenerator } = require('./cookiegenerator');
-const axios = require('axios'); // DITAMBAHKAN UNTUK CEK LISENSI
-const machineId = require('node-machine-id'); // Embedded machineId library
-const { ensureLicense, getLicenseInfo } = require('./sys-core'); // License management
+const { ensureLicense, getLicenseInfo, getMachineHwid } = require('./sys-core'); // License management
 const { createLogger } = require('./logger'); // Centralized logging
-const { QueueManager } = require('./queue-manager'); // Enhanced queue management
-const AccountRotation = require('./account-rotation'); // Account rotation strategy
-// const gradient = require('gradient-string'); // Removed - using normal text instead
-// Note: decrypt() function is now in custom module loader above
 
 
 // Bun compiled detection
@@ -140,7 +139,12 @@ const getExecContext = (args = []) => {
   if (isCompiled) {
     return { path: process.execPath, args };
   } else {
-    return { path: process.execPath, args: [__filename, ...args] };
+    // In production, we are loaded by the 'start' script in the parent directory
+    // In dev, we are usually run directly as 'node executor.js'
+    const startScript = path.join(__dirname, '..', 'start');
+    const scriptPath = fsSync.existsSync(startScript) ? startScript : __filename;
+
+    return { path: process.execPath, args: [scriptPath, ...args] };
   }
 };
 
@@ -202,22 +206,24 @@ function formatDate(dateString) {
 // ---------------------------------------------------------------------------------
 
 
-// Embedded HWID Service Logic with Supabase
-async function getMachineHwid() {
+// Embedded HWID Service Logic with Supabase (Cacheable)
+let cachedHwid = null;
+async function getMachineHwidCached() {
+  if (cachedHwid) return cachedHwid;
   try {
-    const id = await machineId.machineId();
-    return id;
+    cachedHwid = await getMachineHwid();
+    return cachedHwid;
   } catch (error) {
-    // Error getting machine HWID
     return null;
   }
 }
 
 // Supabase Database Manager
-const { getSupabaseManager } = require('./supabase-manager');
-
 function getDatabase() {
-  return getSupabaseManager();
+  const { getSupabaseManager } = require('./clouddb-manager');
+  const db = getSupabaseManager();
+  // Connection will happen on first query via ensureInitialized
+  return db;
 }
 
 async function getHwidRecord(hwid) {
@@ -341,7 +347,7 @@ async function getEncryptionKeys() {
     return cachedEncryptionKeys;
   }
 
-  const { getSupabaseManager } = require('./supabase-manager');
+  const { getSupabaseManager } = require('./clouddb-manager');
   const supabase = getSupabaseManager();
 
   try {
@@ -425,6 +431,7 @@ class BotExecutor {
     this.accountsDir = ACCOUNTS_DIR;
     this.logsDir = LOGS_DIR;
     this.tempDir = TEMP_DIR;
+    this.pendingTasks = new Set();
 
     this.accounts = [];
     this.runningProcesses = new Map();
@@ -470,9 +477,10 @@ class BotExecutor {
       }
     };
 
-    // Initialize enhanced queue management
-    this.queueManager = new QueueManager(this.config.maxConcurrentGlobal);
-    this.accountRotation = new AccountRotation(this.config.accountRotationCooldown);
+    // Initialize enhanced queue management (Lazy Loaded)
+    this.queueManager = null;
+    this.accountRotation = null;
+    this.notify = null; // Lazy loaded notification manager
 
     this.processing = false;
     this.memoryStats = { peak: 0, current: 0 };
@@ -487,15 +495,17 @@ class BotExecutor {
   async checkLicense() {
     try {
       // Use license-manager to ensure license is activated
-      const licenseInfo = await ensureLicense('FacebookPro Blaster Bot', false);
+      // Using silent mode for internal deep check
+      const licenseInfo = await ensureLicense('FacebookPro Blaster Bot', true);
 
       const licensedTo = licenseInfo.name || licenseInfo.email || licenseInfo.owner || 'Unknown';
       const licenseType = (licenseInfo.licenseType || 'UNKNOWN').toUpperCase();
-      this.logger.success(
-        `License valid for ${licensedTo} (${licenseType}) until ${formatDate(licenseInfo.expiresAt)}`);
 
+      this.licenseKey = licenseInfo.licenseKey;
+      this.licenseType = licenseType;
+      this.hwid = licenseInfo.hwid;
 
-      return { key: licenseInfo.licenseKey, type: licenseInfo.licenseType };
+      return { key: licenseInfo.licenseKey, type: licenseType, info: licenseInfo };
     } catch (error) {
       this.logger.error(`License check failed: ${error.message}`);
       process.exit(1);
@@ -692,27 +702,44 @@ class BotExecutor {
   }
 
   async initialize(skipLicenseCheck = false) {
+    const isLean = process.env.LEAN_WORKER === 'true';
+
+    if (isLean) {
+      // Minimal init for workers
+      await this.createDirectories();
+      return null;
+    }
+
     const time = this.formatTime();
+
+    process.stdout.write('⚙️  Loading system components... ');
+    await this.createDirectories();
+    process.stdout.write('OK\n');
+
+    // Parallel Account Loading (DB init is now on-demand)
+    process.stdout.write('📡 Initializing storage... ');
+    await this.loadAccounts();
+    process.stdout.write('OK\n');
 
     // Only check license if not skipping
     let licenseInfo = null;
     if (!skipLicenseCheck) {
+      process.stdout.write('🔐 Verifying access... ');
       try {
-        licenseInfo = await this.checkLicense(); // Get and store the license key and type
+        licenseInfo = await this.checkLicense();
         this.licenseKey = licenseInfo.key; // Store the key separately if needed
         this.licenseType = licenseInfo.type; // Store the type separately if needed
+        process.stdout.write('OK\n');
       } catch (error) {
-        this.getLogger('system', 'license').error(`License check failed: ${error.message}`);
+        process.stdout.write('FAILED\n');
+        this.getLogger('system', 'license').error(`License validation error: ${error.message}`);
         process.exit(1);
       }
     }
 
-    await this.createDirectories();
-    await this.loadAccounts();
+    process.stdout.write('🤖 Initializing bots... ');
     await this.initializeCookieGenerators();
-
-
-    // Encryption removed - no longer needed
+    process.stdout.write('OK\n\n');
 
     return licenseInfo;
   }
@@ -842,6 +869,8 @@ class BotExecutor {
   }
 
   async initializeCookieGenerators() {
+    const { CookieGenerator } = require('./cookiegenerator');
+    this.cookieGenerators = new Map();
     for (const account of this.accounts) {
       if (account.hasLoginConfig) {
         try {
@@ -893,7 +922,7 @@ class BotExecutor {
       this.cookieCheckResults.set(accountId, {
         isValid: false,
         checkedAt: Date.now(),
-        status: 'no_cookies',
+        status: 'no_setup',
         canAutoRefresh: false
       });
       return false;
@@ -949,16 +978,28 @@ class BotExecutor {
         }
 
         this.getLogger(accountId, 'cookies').success('Cookies refreshed successfully');
-        await notify.cookieStatus(accountId, 'refreshed', 'Auto-refresh successful');
+        if (!this.notify) {
+          const notify = require('./notify');
+          this.notify = notify;
+        }
+        await this.notify.cookieStatus(accountId, 'refreshed', 'Auto-refresh successful');
       } else {
         this.getLogger(accountId, 'cookies').error('Failed to refresh cookies');
-        await notify.cookieStatus(accountId, 'invalid', 'Auto-refresh failed');
+        if (!this.notify) {
+          const notify = require('./notify');
+          this.notify = notify;
+        }
+        await this.notify.cookieStatus(accountId, 'invalid', 'Auto-refresh failed');
       }
 
       return success;
     } catch (error) {
       this.getLogger(accountId, 'cookies').error(`Refresh error: ${error.message}`);
-      await notify.error(accountId, 'cookies', `Refresh failed: ${error.message}`);
+      if (!this.notify) {
+        const notify = require('./notify');
+        this.notify = notify;
+      }
+      await this.notify.error(accountId, 'cookies', `Refresh failed: ${error.message}`);
       return false;
     }
   }
@@ -991,7 +1032,8 @@ class BotExecutor {
     }
 
     const validCount = results.filter(r => r.valid).length;
-    await notify.systemAlert('validation', `${validCount}/${results.length} accounts valid`);
+    if (!this.notify) this.notify = require('./notify');
+    await this.notify.systemAlert('validation', `${validCount}/${results.length} accounts valid`);
 
     return results;
   }
@@ -1009,6 +1051,11 @@ class BotExecutor {
 
     // Enhanced queue or legacy queue
     if (this.config.queuePriorityEnabled) {
+      // Lazy load QueueManager
+      if (!this.queueManager) {
+        const { QueueManager } = require('./queue-manager');
+        this.queueManager = new QueueManager(this.config.maxConcurrentGlobal);
+      }
       // Use enhanced QueueManager
       try {
         const priorityStr = this._mapPriorityToString(task.priority);
@@ -1092,88 +1139,126 @@ class BotExecutor {
 
       while (this.runningProcesses.size < this.config.maxConcurrentGlobal) {
         // Get next task from appropriate queue
-        const task = useEnhancedQueue
-          ? this.queueManager.dequeue()
-          : this.taskQueue.shift();
+        let task;
+        if (useEnhancedQueue) {
+          if (!this.queueManager) {
+            const { QueueManager } = require('./queue-manager');
+            this.queueManager = new QueueManager(this.config.maxConcurrentGlobal);
+          }
+          task = this.queueManager.dequeue();
+        } else {
+          task = this.taskQueue.shift();
+        }
 
         if (!task) break; // No more tasks
 
-        // Check delay
-        if (task.delayUntil && Date.now() < task.delayUntil) {
-          // Re-queue task
-          if (useEnhancedQueue) {
-            await this.queueManager.enqueueDelayed(task, task.delayUntil - Date.now());
-          } else {
-            this.taskQueue.unshift(task);
+        const pendingKey = `${task.accountId}_${task.botName}`;
+        this.pendingTasks.add(pendingKey);
+
+        try {
+          // Check delay
+          if (task.delayUntil && Date.now() < task.delayUntil) {
+            // Re-queue task
+            if (useEnhancedQueue) {
+              if (!this.queueManager) {
+                const { QueueManager } = require('./queue-manager');
+                this.queueManager = new QueueManager(this.config.maxConcurrentGlobal);
+              }
+              await this.queueManager.enqueueDelayed(task, task.delayUntil - Date.now());
+            } else {
+              this.taskQueue.unshift(task);
+            }
+            break;
           }
-          break;
-        }
 
-        // Check conflicts
-        if (this.isTaskConflicted(task)) {
-          // Re-queue task
-          if (useEnhancedQueue) {
-            await this.queueManager.enqueueDelayed(task, 5000); // Retry in 5 seconds
-          } else {
-            this.taskQueue.unshift(task);
+          // Check conflicts
+          if (this.isTaskConflicted(task)) {
+            // Re-queue task
+            if (useEnhancedQueue) {
+              if (!this.queueManager) {
+                const { QueueManager } = require('./queue-manager');
+                this.queueManager = new QueueManager(this.config.maxConcurrentGlobal);
+              }
+              await this.queueManager.enqueueDelayed(task, 5000); // Retry in 5 seconds
+            } else {
+              this.taskQueue.unshift(task);
+            }
+            break;
           }
-          break;
-        }
 
-        // Validate cookies if needed
-        if (task.validateCookies) {
-          const cookieResult = this.cookieCheckResults.get(task.accountId);
-          const needsValidation = !cookieResult ||
-            !cookieResult.isValid ||
-            (Date.now() - cookieResult.checkedAt > this.config.cookieValidationInterval);
+          // Validate cookies if needed
+          if (task.validateCookies) {
+            const cookieResult = this.cookieCheckResults.get(task.accountId);
+            const needsValidation = !cookieResult ||
+              !cookieResult.isValid ||
+              (Date.now() - cookieResult.checkedAt > this.config.cookieValidationInterval);
 
-          if (needsValidation) {
-            // Validating cookies
-            const isValid = await this.validateAccountCookies(task.accountId);
+            if (needsValidation) {
+              // Validating cookies
+              const isValid = await this.validateAccountCookies(task.accountId);
 
-            if (!isValid && this.config.autoRefreshCookies) {
-              const account = this.accounts.find(a => a.id === task.accountId);
-              if (account && account.hasLoginConfig) {
-                const refreshed = await this.ensureValidCookies(task.accountId);
+              if (!isValid && this.config.autoRefreshCookies) {
+                const account = this.accounts.find(a => a.id === task.accountId);
+                if (account && account.hasLoginConfig) {
+                  const refreshed = await this.ensureValidCookies(task.accountId);
 
-                if (!refreshed) {
-                  task.retries = (task.retries || 0) + 1;
-                  if (task.retries < 3) {
-                    task.delayUntil = Date.now() + (10 * 60 * 1000);
+                  if (!refreshed) {
+                    task.retries = (task.retries || 0) + 1;
+                    if (task.retries < 3) {
+                      task.delayUntil = Date.now() + (10 * 60 * 1000);
 
-                    // Re-queue with delay
-                    if (useEnhancedQueue) {
-                      await this.queueManager.enqueueDelayed(task, 10 * 60 * 1000);
+                      // Re-queue with delay
+                      if (useEnhancedQueue) {
+                        if (!this.queueManager) {
+                          const { QueueManager } = require('./queue-manager');
+                          this.queueManager = new QueueManager(this.config.maxConcurrentGlobal);
+                        }
+                        await this.queueManager.enqueueDelayed(task, 10 * 60 * 1000);
+                      } else {
+                        this.taskQueue.push(task);
+                      }
+                      // Cookie refresh failed
                     } else {
-                      this.taskQueue.push(task);
+                      // Max retries reached
+                      if (!this.notify) {
+                        const notify = require('./notify');
+                        this.notify = notify;
+                      }
+                      await this.notify.error(task.accountId, task.botName,
+                        'Max cookie refresh retries reached');
                     }
-                    // Cookie refresh failed
-                  } else {
-                    // Max retries reached
-                    await notify.error(task.accountId, task.botName,
-                      'Max cookie refresh retries reached');
+                    continue;
                   }
+                } else {
+                  // Invalid cookies, no auto-refresh
+                  if (!this.notify) {
+                    const notify = require('./notify');
+                    this.notify = notify;
+                  }
+                  await this.notify.warning(task.accountId, task.botName,
+                    'Invalid cookies, manual intervention needed');
                   continue;
                 }
-              } else {
-                // Invalid cookies, no auto-refresh
-                await notify.warning(task.accountId, task.botName,
-                  'Invalid cookies, manual intervention needed');
+              } else if (!isValid) {
+                this.getLogger(task.accountId, task.botName).error('Invalid cookies');
                 continue;
               }
-            } else if (!isValid) {
-              this.getLogger(task.accountId, task.botName).error('Invalid cookies');
-              continue;
             }
           }
-        }
 
-        // Execute task
-        await this.executeTask(task);
+          // Execute task
+          await this.executeTask(task);
 
-        // Track completion for account rotation (if enabled)
-        if (this.config.enableRotation) {
-          this.accountRotation.recordCompletion(task.accountId);
+          // Track completion for account rotation (if enabled)
+          if (this.config.enableRotation) {
+            if (!this.accountRotation) {
+              const AccountRotation = require('./account-rotation');
+              this.accountRotation = new AccountRotation(this.config.accountRotationCooldown);
+            }
+            this.accountRotation.recordCompletion(task.accountId);
+          }
+        } finally {
+          this.pendingTasks.delete(pendingKey);
         }
       }
     } finally {
@@ -1182,7 +1267,7 @@ class BotExecutor {
 
     // Check if more tasks to process
     const hasMoreTasks = this.config.queuePriorityEnabled
-      ? !this.queueManager.isEmpty()
+      ? (this.queueManager ? !this.queueManager.isEmpty() : false)
       : this.taskQueue.length > 0;
 
     if (hasMoreTasks) {
@@ -1364,164 +1449,76 @@ class BotExecutor {
   }
 
   async spawnBotProcess(accountId, botName) {
-    // Try multiple possible paths for the bot script
-    // Calculate obfuscated bot name for production compatibility
-    let obfuscatedBotName = botName;
-    obfuscatedBotName = obfuscatedBotName.replace(/openbao/g, 'vault').replace(/supabase/g, 'clouddb');
+    this.getLogger(accountId, botName).info(`Spawning isolated bot process...`);
 
-    const namesToTry = [botName];
-    if (obfuscatedBotName !== botName) {
-      namesToTry.push(obfuscatedBotName);
-    }
+    // Use master execution context (points to 'start' script in production)
+    const context = getExecContext(['bot', botName, accountId]);
 
+    // Spawn the child process
+    return spawn(context.path, context.args, {
+      env: Object.assign({}, process.env, {
+        ACCOUNT_ID: accountId,
+        BOT_NAME: botName
+      }),
+      stdio: 'inherit'
+    });
+  }
+
+  /**
+   * Directly execute a bot script (used by child processes)
+   */
+  async runBotDirectly(botName, accountId) {
+    this.getLogger(accountId, botName).info(`Executing bot logic...`);
+
+    // 1. Try to find the script
+    let obfuscatedBotName = botName.replace(/openbao/g, 'vault').replace(/supabase/g, 'clouddb');
+    const namesToTry = [botName, obfuscatedBotName];
     const possiblePaths = [];
 
     for (const name of namesToTry) {
       possiblePaths.push(
-        // Try without extension first (for encrypted files in production)
-        path.join(__dirname, name), // Current directory without extension
-        path.join(__dirname, '..', 'bot', name), // Parent bot directory without extension
-        path.join(process.cwd(), 'bot', name), // Working directory bot folder without extension
-        path.join(process.cwd(), name), // Working directory root without extension
-
-        // Fallback to .js extension (for development)
-        path.join(__dirname, `${name}.js`), // Current directory with .js
-        path.join(__dirname, '..', 'bot', `${name}.js`), // Parent bot directory with .js
-        path.join(process.cwd(), 'bot', `${name}.js`), // Working directory bot folder with .js
-        path.join(process.cwd(), `${name}.js`) // Working directory root with .js
+        path.join(__dirname, name),
+        path.join(__dirname, '..', 'bot', name),
+        path.join(process.cwd(), 'bot', name),
+        path.join(process.cwd(), name),
+        path.join(__dirname, `${name}.js`),
+        path.join(__dirname, '..', 'bot', `${name}.js`)
       );
     }
 
     let botScriptPath = null;
     let scriptContent = null;
-    let isEncrypted = false;
 
-    // Try each path until we find a working one
-    for (const possiblePath of possiblePaths) {
+    for (const p of possiblePaths) {
       try {
-        this.getLogger(accountId, 'spawn').debug(`Trying path: ${possiblePath}`);
-        scriptContent = await fs.readFile(possiblePath, 'utf8');
-        botScriptPath = possiblePath;
-        this.getLogger(accountId, 'spawn').debug(`Found bot script at: ${botScriptPath}`);
-        break;
-      } catch (error) {
-        // Continue to next path
-        continue;
-      }
+        if (fsSync.existsSync(p) && !fsSync.lstatSync(p).isDirectory()) {
+          scriptContent = fsSync.readFileSync(p, 'utf8');
+          botScriptPath = p;
+          break;
+        }
+      } catch (e) { }
     }
 
-    if (!botScriptPath || !scriptContent) {
-      throw new Error(`Bot script not found for ${botName}. Tried paths: ${possiblePaths.join(', ')}`);
+    if (!botScriptPath) {
+      throw new Error(`Bot logic not found for ${botName}`);
     }
 
-    // Check if script is encrypted (hex format)
-    isEncrypted = /^[0-9a-f]+$/i.test(scriptContent.trim());
+    // 2. Check encryption
+    const isEncrypted = /^[0-9a-f]+$/i.test(scriptContent.trim());
 
-    // Setup environment variables
-    const env = Object.assign({}, process.env || {}, {
-      ACCOUNT_ID: accountId,
-      TEMP_DIR: this.tempDir,
-      BOT_NAME: botName,
-      TZ: 'Asia/Jakarta',
-      AUTO_LOGIN_ENABLED: this.accounts.find(a => a.id === accountId)?.hasLoginConfig ? 'true' : 'false',
-      VPS_MODE: this.isVPS ? 'true' : 'false',
-      NODE_OPTIONS: '--max-old-space-size=1024',
-      DEBUG: '' // Disable all debug output for cleaner logs
-    });
-
-    const nodeArgs = [
-      '--max-old-space-size=1024',
-      '--max-semi-space-size=8'
-    ];
-
-    if (this.isVPS && global.gc) {
-      nodeArgs.push('--expose-gc');
-    }
-
-    let spawnArgs;
     if (isEncrypted) {
-      // For encrypted scripts, use loader.js as wrapper
-      this.getLogger(accountId, botName).info('Script is encrypted, using loader wrapper');
-
-      const loaderPath = path.join(__dirname, 'loader.js');
-      spawnArgs = [...nodeArgs, loaderPath, botName, accountId];
+      this.getLogger(accountId, botName).info('Safe-loading encrypted remote stub');
+      const { runRemoteBot } = require('./bot-injector');
+      await runRemoteBot(botName);
     } else {
-      // For plain scripts, execute directly
-      this.getLogger(accountId, botName).info('Script is plain JS, executing directly');
-      spawnArgs = [...nodeArgs, botScriptPath, accountId];
+      this.getLogger(accountId, botName).info('Executing local logic');
+      const m = new Module(botScriptPath, module);
+      m.filename = botScriptPath;
+      m.paths = Module._nodeModulePaths(path.dirname(botScriptPath));
+      m._compile(scriptContent, botScriptPath);
     }
-
-    this.getLogger(accountId, botName).info(`Spawning bot process...`);
-
-    // Choose correct executable and arguments
-    let execPath = 'node';
-    let finalArgs = spawnArgs;
-
-    if (isCompiled) {
-      // Use the executable itself as the worker
-      execPath = process.execPath;
-      finalArgs = ['worker', botName, accountId];
-      if (options.parallel) finalArgs.push('--parallel');
-      this.getLogger(accountId, botName).info(`Running in standalone binary mode (WORKER)`);
-    }
-
-    this.getLogger(accountId, botName).info(`Exec: ${execPath} ${finalArgs.join(' ')}`);
-
-    const child = spawn(execPath, finalArgs, {
-      env: env,
-      stdio: ['pipe', 'pipe', 'pipe'],  // Piped stdio for log capture
-      detached: false,
-      windowsHide: true // Hide console window on Windows
-    });
-
-    this.getLogger(accountId, botName).info(`Process spawned with PID: ${child.pid}`);
-
-    // Create log file
-    const logFile = path.join(this.logsDir, `${accountId}_${botName}_${Date.now()}.log`);
-    const logStream = fsSync.createWriteStream(logFile);
-
-    const logHeader = `===========================================
-Bot: ${botName}
-Account: ${accountId}
-Started: ${this.formatTime()}
-PID: ${child.pid}
-===========================================
-
-`;
-    logStream.write(logHeader);
-
-    // Pipe output to log file and console
-    child.stdout.pipe(logStream);
-    child.stderr.pipe(logStream);
-
-    child.stdout.on('data', (data) => {
-      const output = data.toString();
-      if (output.trim()) {
-        console.log(`[${accountId}/${botName}] ${output.trim()}`);
-      }
-    });
-
-    child.stderr.on('data', (data) => {
-      const output = data.toString();
-      if (output.trim()) {
-        console.error(`[${accountId}/${botName}] ERROR: ${output.trim()}`);
-      }
-    });
-
-    // Cleanup temp file after process exits if it was encrypted
-    if (isEncrypted) {
-      child.on('close', async () => {
-        try { await fs.unlink(botScriptPath); } catch (e) { }
-      });
-    }
-
-    child.on('error', (error) => {
-      // Spawn error
-      this.getLogger(accountId, botName).error(`Spawn error: ${error.message}`);
-    });
-
-    return child;
   }
+
 
   async runSingle(accountId, botName, options = {}) {
     const account = this.accounts.find(a => a.id === accountId);
@@ -1560,11 +1557,26 @@ PID: ${child.pid}
           info => info.accountId === accountId && info.botName === botName
         );
 
-        const isQueued = this.taskQueue.some(
+        // Check legacy queue
+        let isQueued = this.taskQueue.some(
           task => task.accountId === accountId && task.botName === botName
         );
 
-        if (!isRunning && !isQueued) {
+        // Check enhanced queue if enabled
+        if (!isQueued && this.config.queuePriorityEnabled) {
+          if (!this.queueManager) {
+            const { QueueManager } = require('./queue-manager');
+            this.queueManager = new QueueManager(this.config.maxConcurrentGlobal);
+          }
+          const qmQueues = this.queueManager.queue.queues;
+          isQueued = Object.values(qmQueues).some(q =>
+            q.some(t => t.accountId === accountId && t.botName === botName)
+          );
+        }
+
+        const isPending = this.pendingTasks.has(`${accountId}_${botName}`);
+
+        if (!isRunning && !isQueued && !isPending) {
           setTimeout(() => {
             clearInterval(checkInterval);
             clearTimeout(timeout);
@@ -1727,7 +1739,7 @@ PID: ${child.pid}
       enabledAccounts: this.accounts.filter(a => a.enabled).length,
       withLoginConfig: this.accounts.filter(a => a.hasLoginConfig).length,
       runningProcesses: this.runningProcesses.size,
-      queuedTasks: this.config.queuePriorityEnabled ? this.queueManager.size() : this.taskQueue.length,
+      queuedTasks: this.config.queuePriorityEnabled ? (this.queueManager ? this.queueManager.size() : 0) : this.taskQueue.length,
       lockedAccounts: this.accountLocks.size,
       running: Array.from(this.runningProcesses.entries()).map(([k, i]) => ({
         task: `${i.accountId}/${i.botName}`,
@@ -1751,7 +1763,11 @@ PID: ${child.pid}
     }
 
     // Add rotation stats if enabled
-    if (this.config.enableRotation && this.accountRotation) {
+    if (this.config.enableRotation) {
+      if (!this.accountRotation) {
+        const AccountRotation = require('./account-rotation');
+        this.accountRotation = new AccountRotation(this.config.accountRotationCooldown);
+      }
       const rotationStats = this.accountRotation.getStats();
       status.rotationStats = {
         totalAccounts: rotationStats.totalAccounts,
@@ -1803,27 +1819,30 @@ async function main() {
   const cmd = args[0];
 
   // Display ASCII art and license info FIRST, before checking commands
-  // FacebookPro Blaster ASCII Art
-  const asciiArt = `
+  // SKIP for workers to save speed and keep logs clean
+  if (process.env.LEAN_WORKER !== 'true') {
+    // FacebookPro Blaster ASCII Art
+    const asciiArt = `
                  ░█▀▀░█▀▄░█▀█░█▀▄░█▀█                      
-                 ░█▀▀░█▀▄░█▀▀░█▀▄░█░█  v.1.0.0             
-                 ░▀░░░▀▀░░▀░░░▀░▀░▀▀▀                      
+                 ░█▀▀░█▀▄░█▀▀░█▀▄░█░█  v.1.0.0 b${process.env.BUILD_NUMBER || 'DEV'}             
+                 ░▀░░░▀▀░░▀░▀░▀░▀░▀▀▀                      
                  ░█▀▄░█░░░█▀█░█▀▀░▀█▀░█▀▀░█▀▄              
                  ░█▀▄░█░░░█▀█░▀▀█░░█░░█▀▀░█▀▄              
                  ░▀▀░░▀▀▀░▀░▀░▀▀▀░░▀░░▀▀▀░▀░▀              
                                                            
              Advanced Facebook Automation System           
                                                            `;
-  // Display ASCII art line by line
-  console.log(asciiArt);
+    // Display ASCII art line by line
+    console.log(asciiArt);
 
-  // Display license information if available
-  const licenseInfo = getLicenseInfo();
-  if (licenseInfo) {
-    const licensedTo = licenseInfo.name || licenseInfo.email || licenseInfo.owner || 'Unknown';
-    const licenseType = (licenseInfo.licenseType || 'UNKNOWN').toUpperCase();
-    console.log(`\nLicensed to: ${licensedTo}`);
-    console.log(`License Type: ${licenseType}\n`);
+    // Display license information if available
+    const licenseInfo = getLicenseInfo();
+    if (licenseInfo) {
+      const licensedTo = licenseInfo.name || licenseInfo.email || licenseInfo.owner || 'Unknown';
+      const licenseType = (licenseInfo.licenseType || 'UNKNOWN').toUpperCase();
+      console.log(`\nLicensed to: ${licensedTo}`);
+      console.log(`License Type: ${licenseType}\n`);
+    }
   }
 
   // Handle case when no command is provided - Interactive Shell Mode
@@ -1870,6 +1889,7 @@ OPTIONS:
 
     showUsage();
 
+    const readline = require('readline');
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout
@@ -1992,7 +2012,8 @@ OPTIONS:
           case '6':
             rl.question('Enter License Key: ', (key) => {
               if (key) {
-                const sysInitPath = path.join(__dirname, 'sys-init.js');
+                const sysInitBase = path.join(__dirname, 'sys-init');
+                const sysInitPath = fsSync.existsSync(sysInitBase) ? sysInitBase : path.join(__dirname, 'sys-init.js');
                 console.log(`[EXECUTOR] Activating license...`);
                 const childLic = spawn(process.execPath, [sysInitPath, key], { stdio: 'inherit' });
                 childLic.on('close', () => showMenu());
@@ -2024,38 +2045,20 @@ OPTIONS:
   const requiresLicense = commandsRequiringLicense.includes(cmd);
 
   try {
-    // Initialize with or without license check based on command
-    const licenseInfo = await executor.initialize(!requiresLicense); // Skip license check if not required
+    // Initialize everything in one go (directories, accounts, db, license)
+    const licenseInfo = await executor.initialize(!requiresLicense);
 
-    // Pre-initialize SupabaseManager to avoid async issues in bot execution
-    try {
-      const db = getDatabase();
-      await db.initialize();
-    } catch (error) {
-      // SupabaseManager initialization failed, but continue (it will fallback to .env)
-    }
-
-    // Only perform HWID check if license is required
     if (requiresLicense && licenseInfo) {
-      // HWID CHECK
-      const hwid = await getMachineHwid();
+      // HWID already checked inside initialize -> checkLicense -> ensureLicense
+      const hwid = executor.hwid;
       if (!hwid) {
         executor.logger.error('Could not retrieve device ID');
         process.exit(1);
       }
 
-      // Shorten HWID for display
       const shortHwid = `${hwid.substring(0, 8)}...${hwid.substring(hwid.length - 8)}`;
       executor.logger.info(`Device ID: ${shortHwid}`);
-
-      // Validate device activation
-      const active = await isHwidActive(hwid, licenseInfo.key, licenseInfo.type);
-      if (!active) {
-        executor.logger.error('Device not activated');
-        process.exit(1);
-      }
-      executor.logger.success('Device activated');
-      // END HWID CHECK
+      executor.logger.success('Device authorized');
     }
 
     // Process the command
@@ -2063,6 +2066,16 @@ OPTIONS:
       case 'status':
         console.log(JSON.stringify(executor.getStatus(), null, 2));
         process.exit(0);
+        break;
+
+      case 'bot': // Internal command for spawning bots (universal entry point)
+        const botName = args[1];
+        const accountId = args[2];
+        if (!botName || !accountId) {
+          executor.logger.error('Usage: bot <name> <account>');
+          process.exit(1);
+        }
+        await executor.runBotDirectly(botName, accountId);
         break;
 
       case 'run':
@@ -2139,7 +2152,6 @@ OPTIONS:
 
       case 'generate':
         const generateAccount = args[1];
-        const { CookieGenerator } = require('./cookiegenerator');
 
         if (generateAccount) {
           // Generate cookies for specific account
@@ -2397,13 +2409,23 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
-process.on('unhandledRejection', (reason) => {
-  // Unhandled rejection
-  process.exit(1);
-});
+// Lean Worker detection
+if (process.argv.includes('bot')) {
+  process.env.LEAN_WORKER = 'true';
+}
 
-if (require.main === module) {
-  main().catch(console.error);
+// Entry point check
+const isEntryPoint = require.main === module ||
+  process.env.SECURE_RUNTIME === 'true' ||
+  process.env.LEAN_WORKER === 'true' ||
+  (process.argv[1] && (process.argv[1].endsWith('executor') || process.argv[1].endsWith('executor.js')));
+
+if (isEntryPoint) {
+  main().catch(err => {
+    console.error('\n❌ FATAL ENGINE ERROR:');
+    console.error(err);
+    process.exit(1);
+  });
 }
 
 module.exports = BotExecutor;

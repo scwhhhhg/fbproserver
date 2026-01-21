@@ -9,6 +9,19 @@ const sourceDir = __dirname;
 const distDir = path.join(__dirname, 'dist');
 const distBotDir = path.join(distDir, 'bot');
 
+const PRODUCTION_KEY = '9dfcba7489ac7d654103c6e9d97d7466daa96738c6b306488e79a8f3f9e7c97a';
+const PRODUCTION_IV = '077c6a622b823f8b65d97d7466daa968';
+
+function encryptStubContent(botName) {
+    const key = Buffer.from(PRODUCTION_KEY, 'hex');
+    const iv = Buffer.from(PRODUCTION_IV, 'hex');
+    const content = `require('./bot-injector').runRemoteBot('${botName}')`;
+    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+    let encrypted = cipher.update(content, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    return encrypted;
+}
+
 function getLatestBuildNumber() {
     try {
         const buildNumberFile = path.join(__dirname, '.build-number');
@@ -43,7 +56,7 @@ function createZipArchive(buildNumber) {
 
 async function build() {
     console.log('🚀 Starting FBPro Blaster SECURE BUILDER...');
-    console.log('   ✓ Bytecode V8 Compilation');
+    console.log('   ✓ Bytecode V8 Compilation (.jsc)');
     console.log('   ✓ Full Logic Separation');
     console.log('   ✓ Multi-Bot Security Layer');
     console.log('');
@@ -54,12 +67,17 @@ async function build() {
     const newBuildNumber = getLatestBuildNumber() + 1;
     console.log(`📦 Build Number: ${newBuildNumber}`);
 
-    // Files to compile (Core Engine)
-    const coreFiles = [
-        'executor.js', 'bot-injector.js', 'remote-config.js', 'sys-core.js',
-        'notify.js', 'logger.js', 'marmosm.js', 'net-client.js', 'anti-detection.js',
-        'commentgenerator.js', 'cookiegenerator.js', 'security.js'
-    ];
+    // Automatically scan for all .js files in the server-side folder
+    // but exclude the build script itself and ecosystem configs
+    // Automatically scan for all .js files in the server-side folder
+    // but exclude the build script itself and ecosystem configs
+    const excludedFiles = ['build.js', 'ecosystem.config.js', 'worker.js', 'temp-obfuscate.js', 'update_worker_logic.js', 'mock_worker.js'];
+    const jsFiles = fs.readdirSync(sourceDir).filter(f =>
+        f.endsWith('.js') &&
+        !excludedFiles.includes(f) &&
+        !f.startsWith('.') &&
+        !f.startsWith('test')
+    );
 
     const integrityManifest = {
         buildNumber: newBuildNumber,
@@ -67,76 +85,186 @@ async function build() {
         files: {}
     };
 
-    console.log('⚡ Compiling core engine to bytecode...');
+    console.log(`⚡ Compiling ${jsFiles.length} core modules to bytecode...`);
 
-    coreFiles.forEach(file => {
+    jsFiles.forEach(file => {
         const src = path.join(sourceDir, file);
-        if (!fs.existsSync(src)) return;
-
         const name = path.basename(file, '.js');
-        const bytecodeFile = path.join(distBotDir, name); // NO EXTENSION
+        const bytecodeFile = path.join(distBotDir, `${name}.jsc`);
 
         try {
+            // 1. Compile to Bytecode
             bytenode.compileFile({ filename: src, output: bytecodeFile });
 
+            // 2. Generate SHA256 hash
             const bytecodeContent = fs.readFileSync(bytecodeFile);
             const hash = crypto.createHash('sha256').update(bytecodeContent).digest('hex');
-            integrityManifest.files[`bot/${name}`] = hash;
+            integrityManifest.files[`bot/${name}.jsc`] = hash;
 
-            // Create wrapper
-            const wrapperCode = `require('bytenode');\nmodule.exports = require('./${name}');`;
-            fs.writeFileSync(path.join(distBotDir, file), wrapperCode);
+            // 3. Create Wrapper
+            const wrapperCode = `require('bytenode');\nmodule.exports = require('./${name}.jsc');`;
+            fs.writeFileSync(path.join(distBotDir, name), wrapperCode);
 
-            console.log(`   ✓ ${file} compiled`);
+            console.log(`   ✓ ${file} compiled -> bot/${name}`);
         } catch (e) {
             console.error(`   ✗ Failed ${file}:`, e.message);
         }
     });
 
     // Copy the encrypted bot stubs (those without extension)
-    const botStubs = [
+    // We scan for files without extensions that are known bots
+    const botList = [
         'autolike', 'videocomment', 'timelinecomment', 'groupcomment',
         'uploadreels', 'sharereels', 'confirm', 'updatestatus',
         'scrape', 'viewstory', 'reply'
     ];
 
-    console.log('🔐 Packaging secure bot stubs...');
-    botStubs.forEach(stub => {
-        const src = path.join(sourceDir, stub);
-        if (fs.existsSync(src)) {
-            fs.copyFileSync(src, path.join(distBotDir, stub));
-            console.log(`   ✓ stub: ${stub}`);
+    console.log('🔐 Generating secure bot stubs...');
+    botList.forEach(stub => {
+        try {
+            const encrypted = encryptStubContent(stub);
+            fs.writeFileSync(path.join(distBotDir, stub), encrypted);
+            console.log(`   ✓ stub: ${stub} (encrypted)`);
+        } catch (e) {
+            console.error(`   ✗ stub: ${stub} failed: ${e.message}`);
         }
     });
 
     // Save integrity
     fs.writeFileSync(path.join(distDir, '.integrity'), JSON.stringify(integrityManifest, null, 2));
 
-    // Create Start Script
-    const startScript = `
+    // =============================================================================
+    // 3. CREATE SECURITY-ENHANCED START SCRIPT
+    // =============================================================================
+
+    console.log('');
+    console.log('🛡️  Creating protected startup script...');
+    const startScript = `// =============================================================================
+// FacebookPro Blaster - SECURE STARTUP (SERVER-SIDE VERSION)
+process.env.BUILD_NUMBER = '${newBuildNumber}';
+// =============================================================================
+
 const path = require('path');
-console.log('🛡️  Initialising FBPro Blaster Secure Runtime...');
+const fs = require('fs');
+const Module = require('module');
+
+// 1. Check for required dependencies
+try { 
+    require('bytenode'); 
+} catch(e) { 
+    console.error('ERROR: "bytenode" module not found.'); 
+    console.error('Please run "npm install" in this directory.');
+    process.exit(1); 
+}
+
+// 2. Load bytecode executor
 try {
-    require('bytenode');
-    require('./bot/executor');
+    const isBot = process.argv.includes('bot');
+    if (!isBot) console.log('🛡️  Initializing secure runtime...');
+    process.env.SECURE_RUNTIME = 'true';
+    if (isBot) process.env.LEAN_WORKER = 'true';
+    
+    // Manually load the extension-less executor wrapper
+    const executorPath = path.join(__dirname, 'bot', 'executor');
+    const content = fs.readFileSync(executorPath, 'utf8');
+    
+    // Set this as the entry point for require.main checks
+    process.argv[1] = executorPath;
+
+    // Create and compile module using standard module system
+    const m = new Module(executorPath, null);
+    m.filename = executorPath;
+    m.paths = Module._nodeModulePaths(path.dirname(executorPath));
+    
+    // Set up standard globals for the compiled context
+    global.require = (id) => m.require(id);
+    global.__filename = executorPath;
+    global.__dirname = path.dirname(executorPath);
+    
+    m._compile(content, executorPath);
+    
 } catch (e) {
+    console.log('--------------------------------------------------');
     console.error('FATAL ERROR: could not start secure bot engine.');
-    console.error(e.message);
+    console.error('Details:', e.message);
+    if (e.stack) console.error(e.stack);
+    console.log('--------------------------------------------------');
     process.exit(1);
 }
 `;
-    fs.writeFileSync(path.join(distDir, 'start.js'), startScript);
+    fs.writeFileSync(path.join(distDir, 'start'), startScript, { mode: 0o755 });
+    console.log('   ✓ start created');
 
-    // Assets
+    // =============================================================================
+    // 4. COPY ASSETS
+    // =============================================================================
+
+    console.log('');
     console.log('📂 Copying documentation and config...');
-    const assets = ['package.json', 'README.md', 'ecosystem.config.js'];
-    assets.forEach(f => {
-        if (fs.existsSync(f)) fs.copyFileSync(f, path.join(distDir, f));
+
+    const rootDir = path.join(sourceDir, '..');
+
+    // package.json
+    const packageJsonPath = path.join(rootDir, 'package.json');
+    if (fs.existsSync(packageJsonPath)) {
+        fs.copyFileSync(packageJsonPath, path.join(distDir, 'package.json'));
+        console.log('   ✓ package.json');
+    }
+
+    // Assets from root
+    const assetsToCopy = ['DOKUMENTASI.html', 'setup-windows.ps1', 'setup-linux.sh'];
+    assetsToCopy.forEach(f => {
+        const src = path.join(rootDir, f);
+        if (fs.existsSync(src)) {
+            fs.copyFileSync(src, path.join(distDir, f));
+            console.log(`   ✓ ${f}`);
+        }
     });
 
-    // Create a README.txt for the package
-    const releaseNotes = `FBPro Blaster - SECURE EDITION\nBuild: ${newBuildNumber}\n\nRunning:\n1. npm install\n2. node start.js\n\nSecurity: Logic is served remotely via Cloudflare.`;
-    fs.writeFileSync(path.join(distDir, 'RELEASE.txt'), releaseNotes);
+    // Local assets
+    if (fs.existsSync(path.join(sourceDir, 'ecosystem.config.js'))) {
+        fs.copyFileSync(path.join(sourceDir, 'ecosystem.config.js'), path.join(distDir, 'ecosystem.config.js'));
+        console.log('   ✓ ecosystem.config.js');
+    }
+
+    // =============================================================================
+    // 2.6. COPY PYTHON & AI ASSETS (Face Swap)
+    // =============================================================================
+    console.log('');
+    console.log('🐍 Copying Local Face Swap assets...');
+    const botSourceDir = path.join(rootDir, 'bot');
+    ['faceswap.py'].forEach(asset => {
+        const src = path.join(botSourceDir, asset);
+        if (fs.existsSync(src)) {
+            fs.copyFileSync(src, path.join(distBotDir, asset));
+            console.log(`   ✓ ${asset}`);
+        }
+    });
+
+    // Create Professional README
+    const readme = `# FacebookPro Blaster - SECURE EDITION (Build #${newBuildNumber})
+
+## Quick Installation
+1. Install Node.js (Version 20+ Recommended)
+2. Open terminal in this folder
+3. Run: \`npm install\`
+4. Configure your accounts in the \`accounts/\` folder
+5. Launch: \`node start\`
+
+## Security & Architecture
+This version uses a **Remote-Centralized Logic Architecture**:
+✓ **Bytecode Compilation**: Core engine is pre-compiled to V8 bytecode (.jsc).
+✓ **Logic Separation**: Key bot algorithms are served dynamically from secure Cloudflare Workers.
+✓ **Zero-Footprint**: No readable JavaScript logic for bots exists on the client machine.
+✓ **Integrity Protection**: Files are protected against unauthorized modification.
+
+## Support & Documentation
+Please refer to \`DOKUMENTASI.html\` for full instructions in Indonesian and English.
+
+Built on: ${new Date().toISOString()}
+`;
+    fs.writeFileSync(path.join(distDir, 'README.txt'), readme);
+    fs.writeFileSync(path.join(distDir, 'README.md'), readme);
 
     try {
         const zipName = await createZipArchive(newBuildNumber);

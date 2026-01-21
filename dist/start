@@ -1,0 +1,52 @@
+// =============================================================================
+// FacebookPro Blaster - SECURE STARTUP (SERVER-SIDE VERSION)
+process.env.BUILD_NUMBER = '331';
+// =============================================================================
+
+const path = require('path');
+const fs = require('fs');
+const Module = require('module');
+
+// 1. Check for required dependencies
+try { 
+    require('bytenode'); 
+} catch(e) { 
+    console.error('ERROR: "bytenode" module not found.'); 
+    console.error('Please run "npm install" in this directory.');
+    process.exit(1); 
+}
+
+// 2. Load bytecode executor
+try {
+    const isBot = process.argv.includes('bot');
+    if (!isBot) console.log('🛡️  Initializing secure runtime...');
+    process.env.SECURE_RUNTIME = 'true';
+    if (isBot) process.env.LEAN_WORKER = 'true';
+    
+    // Manually load the extension-less executor wrapper
+    const executorPath = path.join(__dirname, 'bot', 'executor');
+    const content = fs.readFileSync(executorPath, 'utf8');
+    
+    // Set this as the entry point for require.main checks
+    process.argv[1] = executorPath;
+
+    // Create and compile module using standard module system
+    const m = new Module(executorPath, null);
+    m.filename = executorPath;
+    m.paths = Module._nodeModulePaths(path.dirname(executorPath));
+    
+    // Set up standard globals for the compiled context
+    global.require = (id) => m.require(id);
+    global.__filename = executorPath;
+    global.__dirname = path.dirname(executorPath);
+    
+    m._compile(content, executorPath);
+    
+} catch (e) {
+    console.log('--------------------------------------------------');
+    console.error('FATAL ERROR: could not start secure bot engine.');
+    console.error('Details:', e.message);
+    if (e.stack) console.error(e.stack);
+    console.log('--------------------------------------------------');
+    process.exit(1);
+}

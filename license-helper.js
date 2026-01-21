@@ -5,7 +5,7 @@
  * Database: Supabase (CloudDB)
  */
 
-const { getSupabaseManager } = require('./supabase-manager');
+const { getSupabaseManager } = require('./clouddb-manager');
 
 // License type configurations (from https://fbpro-blaster.vercel.app/#pricing)
 const LICENSE_CONFIG = {

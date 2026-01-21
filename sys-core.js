@@ -1,7 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const readline = require('readline');
-const machineId = require('node-machine-id');
 const crypto = require('crypto');
 
 // Determine Base Directory (Compilation Safe)
@@ -120,6 +118,7 @@ function isLicenseActivated() {
 
 async function getMachineHwid() {
     try {
+        const machineId = require('node-machine-id');
         const id = await machineId.machineId();
         return id;
     } catch (error) {
@@ -290,15 +289,35 @@ async function checkLicense(silent = false) {
         throw new Error('No license found. Please activate your license first.');
     }
 
+    const now = Date.now();
+    const lastCheck = licenseInfo.lastValidated ? new Date(licenseInfo.lastValidated).getTime() : 0;
+    const cooldown = 60 * 60 * 1000; // 1 hour cache
+    const isLean = process.env.LEAN_WORKER === 'true';
+
     try {
-        await validateLicense(licenseInfo.licenseKey);
+        // Skip network call if recently validated OR if running as a lean worker
+        const needsNetworkValidation = (now - lastCheck > cooldown) && !isLean;
+
+        if (needsNetworkValidation) {
+            await validateLicense(licenseInfo.licenseKey);
+
+            // Update lastValidated in the file (Background update)
+            try {
+                licenseInfo.lastValidated = new Date().toISOString();
+                const signature = signLicenseData(licenseInfo);
+                const signedLicense = { ...licenseInfo, _sig: signature };
+                fs.writeFileSync(LICENSE_FILE, JSON.stringify(signedLicense, null, 2));
+            } catch (e) {
+                // Ignore write errors during check
+            }
+        }
 
         const currentHwid = await getMachineHwid();
         if (currentHwid !== licenseInfo.hwid) {
             throw new Error('HWID mismatch. License is bound to different machine.');
         }
 
-        if (!silent) {
+        if (!silent && !isLean) {
             const licenseType = (licenseInfo.licenseType || 'UNKNOWN').toUpperCase();
             console.log(`✅ License valid for ${licenseInfo.name || licenseInfo.email} (${licenseType})`);
         }
@@ -350,6 +369,7 @@ async function checkLicense(silent = false) {
 }
 
 function promptLicenseKey() {
+    const readline = require('readline');
     return new Promise((resolve) => {
         const rl = readline.createInterface({
             input: process.stdin,

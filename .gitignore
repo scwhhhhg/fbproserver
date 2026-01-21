@@ -9,3 +9,4 @@ accounts/
 stubs.txt
 temp-obfuscate.js
 worker.zip
+*.zip

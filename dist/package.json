@@ -1,0 +1,160 @@
+{
+  "name": "facebookpro-blaster",
+  "version": "1.0.0",
+  "description": "Complete FacebookPro Blaster with AI, Memory System, Cookie Management, and Smart Scheduling",
+  "main": "bot/executor.js",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "scripts": {
+    "start": "pm2 start ecosystem.config.js",
+    "stop": "pm2 stop all",
+    "restart": "pm2 restart all",
+    "logs": "pm2 logs",
+    "status": "pm2 status",
+    "flush": "pm2 flush",
+    "save": "pm2 save",
+    "startup": "pm2 startup",
+    "delete": "pm2 delete all",
+    "kill": "pm2 kill",
+    "setup": "node bot/setup-scheduler",
+    "setup:account": "node bot/account-setup",
+    "activate": "node bot/sys-init",
+    "executor": "node bot/executor",
+    "scheduler": "node bot/scheduler-cli",
+    "scheduler:start": "node bot/smart-scheduler",
+    "maintenance": "node bot/maintenance",
+    "cookies:check": "node bot/cookiegenerator check",
+    "cookies:generate": "node bot/cookiegenerator generate",
+    "cookies:generate:show": "node bot/cookiegenerator generate -- --show",
+    "cookies:ensure": "node bot/cookiegenerator ensure",
+    "cookies:ensure:show": "node bot/cookiegenerator ensure -- --show",
+    "telegram": "node bot/telegram-bot",
+    "test:cookies": "node bot/executor validate-cookies",
+    "test:status": "node bot/executor status",
+    "test:list": "node bot/executor list",
+    "generate:cookies": "node bot/executor generate",
+    "run": "node bot/executor run",
+    "autolike": "node bot/executor run autolike",
+    "autolike:show": "node bot/executor run autolike -- --headless",
+    "videocomment": "node bot/executor run videocomment",
+    "videocomment:show": "node bot/executor run videocomment -- --headless",
+    "timelinecomment": "node bot/executor run timelinecomment",
+    "timelinecomment:show": "node bot/executor run timelinecomment -- --headless",
+    "groupcomment": "node bot/executor run groupcomment",
+    "groupcomment:show": "node bot/executor run groupcomment -- --headless",
+    "updatestatus": "node bot/executor run updatestatus",
+    "updatestatus:show": "node bot/executor run updatestatus -- --headless",
+    "uploadreels": "node bot/executor run uploadreels",
+    "uploadreels:show": "node bot/executor run uploadreels -- --headless",
+    "sharereels": "node bot/executor run sharereels",
+    "sharereels:show": "node bot/executor run sharereels -- --headless",
+    "confirm": "node bot/executor run confirm",
+    "confirm:show": "node bot/executor run confirm -- --headless",
+    "scrape": "node bot/executor run scrape",
+    "scrape:show": "node bot/executor run scrape -- --headless",
+    "reply": "node bot/executor run reply",
+    "reply:show": "node bot/executor run reply -- --headless",
+    "viewstory": "node bot/executor run viewstory",
+    "viewstory:show": "node bot/executor run viewstory -- --headless",
+    "build:encrypt": "node build/encrypt-build.js",
+    "build:prod": "npm run build:encrypt && echo Build completed! Check ./dist folder"
+  },
+  "keywords": [
+    "facebook",
+    "facebookpro",
+    "blaster",
+    "automation",
+    "bot",
+    "puppeteer",
+    "ai",
+    "openrouter",
+    "gemini",
+    "scheduler",
+    "telegram",
+    "cookie-management"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@ghostery/adblocker-puppeteer": "^2.12.4",
+    "@gradio/client": "^2.0.2",
+    "@supabase/supabase-js": "^2.39.0",
+    "airtable": "^0.12.2",
+    "axios": "^1.13.2",
+    "bytenode": "^1.5.7",
+    "cross-fetch": "^4.1.0",
+    "dotenv": "^17.2.3",
+    "fetch": "^1.1.0",
+    "mammoth": "^1.6.0",
+    "marked": "^17.0.1",
+    "node-cron": "^3.0.3",
+    "node-machine-id": "^1.1.12",
+    "node-telegram-bot-api": "^0.63.0",
+    "node-vault": "^0.10.9",
+    "otplib": "^12.0.1",
+    "papaparse": "^5.4.1",
+    "puppeteer": "^24.26.1",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "python-shell": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.19.27",
+    "archiver": "^7.0.1",
+    "eslint": "^8.57.1",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jest": "^27.9.0",
+    "javascript-obfuscator": "^4.2.2",
+    "jest": "^29.7.0",
+    "pm2": "^6.0.13",
+    "supertest": "^6.3.4"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.33.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/scwhhhhg/facebookpro-blaster.git"
+  },
+  "bugs": {
+    "url": "https://github.com/scwhhhhg/facebookpro-blaster/issues"
+  },
+  "homepage": "https://github.com/scwhhhhg/facebookpro-blaster#readme",
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "bot/logger.js",
+      "!bot/**/*.test.js",
+      "!bot/node_modules/**",
+      "!bot/dist/**"
+    ],
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 30,
+        "functions": 30,
+        "lines": 30,
+        "statements": 30
+      }
+    },
+    "setupFilesAfterEnv": [
+      "<rootDir>/tests/setup.js"
+    ],
+    "testTimeout": 10000,
+    "coveragePathIgnorePatterns": [
+      "/node_modules/",
+      "/dist/",
+      "/build/",
+      "executor.js",
+      "account-setup.js",
+      "telegram-bot.js"
+    ]
+  }
+}

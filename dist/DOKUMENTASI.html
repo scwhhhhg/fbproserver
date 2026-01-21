@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FacebookPro Blaster - Dokumentasi Lengkap</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+            line-height: 1.7;
+            color: #e2e8f0;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #1e293b;
+            border-radius: 24px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            border: 1px solid #334155;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: white;
+            padding: 60px 40px;
+            text-align: center;
+            position: relative;
+        }
+
+        header h1 {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        header p {
+            font-size: 1.2rem;
+            opacity: 0.95;
+        }
+
+        .lang-switch {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            padding: 6px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .lang-btn {
+            border: none;
+            background: none;
+            padding: 10px 24px;
+            cursor: pointer;
+            border-radius: 24px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .lang-btn.active {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .content {
+            padding: 50px 60px;
+            background: #1e293b;
+        }
+
+        .version-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .section {
+            margin-bottom: 50px;
+        }
+
+        h2 {
+            color: #60a5fa;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 4px solid #3b82f6;
+            font-size: 2rem;
+        }
+
+        h3 {
+            color: #93c5fd;
+            margin: 30px 0 15px 0;
+            font-size: 1.5rem;
+        }
+
+        h4 {
+            color: #bfdbfe;
+            margin: 20px 0 10px 0;
+            font-size: 1.2rem;
+        }
+
+        .step {
+            background: linear-gradient(135deg, #334155 0%, #475569 100%);
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border-left: 6px solid #10b981;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        code {
+            background: #0f172a;
+            color: #34d399;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+            border: 1px solid #1e293b;
+        }
+
+        pre {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 25px;
+            border-radius: 12px;
+            overflow-x: auto;
+            margin: 20px 0;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid #1e293b;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+            border: none;
+        }
+
+        .warning {
+            background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+            border-left: 6px solid #f59e0b;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
+        }
+
+        .success {
+            background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+            border-left: 6px solid #10b981;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
+        }
+
+        .info {
+            background: linear-gradient(135deg, #0c4a6e 0%, #075985 100%);
+            border-left: 6px solid #0ea5e9;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.2);
+        }
+
+        .danger {
+            background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+            border-left: 6px solid #ef4444;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);
+        }
+
+        ul,
+        ol {
+            margin-left: 30px;
+            margin-top: 15px;
+        }
+
+        li {
+            margin: 12px 0;
+            line-height: 1.8;
+        }
+
+        .lang-content {
+            display: none;
+        }
+
+        .lang-content.active {
+            display: block;
+        }
+
+        .toc {
+            background: linear-gradient(135deg, #334155 0%, #475569 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            border: 1px solid #475569;
+        }
+
+        .toc a {
+            color: #60a5fa;
+            text-decoration: none;
+            display: block;
+            padding: 12px 20px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .toc a:hover {
+            background: rgba(96, 165, 250, 0.1);
+            transform: translateX(10px);
+            padding-left: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            background: #334155;
+        }
+
+        th,
+        td {
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 1px solid #475569;
+        }
+
+        th {
+            background: #3b82f6;
+            color: white;
+            text-align: center;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+
+        tr:hover {
+            background: rgba(96, 165, 250, 0.1);
+        }
+
+        footer {
+            background: #0f172a;
+            color: #94a3b8;
+            padding: 40px;
+            text-align: center;
+            border-top: 1px solid #1e293b;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, #334155 0%, #475569 100%);
+            padding: 25px;
+            border-radius: 12px;
+            border: 2px solid #475569;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(59, 130, 246, 0.3);
+            border-color: #3b82f6;
+        }
+
+        .feature-card h4 {
+            color: #60a5fa;
+            margin-bottom: 10px;
+        }
+
+        a {
+            color: #60a5fa;
+            text-decoration: none;
+        }
+
+        a:hover {
+            color: #93c5fd;
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+
+            .content {
+                padding: 30px 20px;
+            }
+
+            .lang-switch {
+                position: static;
+                margin: 20px auto;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="lang-switch">
+                <button class="lang-btn active" onclick="switchLang('id')">ID</button>
+                <button class="lang-btn" onclick="switchLang('en')">EN</button>
+            </div>
+
+            <div class="lang-content active" data-lang="id">
+                <h1>🚀 FacebookPro Blaster</h1>
+                <p>Dokumentasi Lengkap & Panduan Penggunaan</p>
+                <div class="version-badge">v.1.1.0 PRO</div>
+            </div>
+
+            <div class="lang-content" data-lang="en">
+                <h1>🚀 FacebookPro Blaster</h1>
+                <p>Complete Documentation & User Guide</p>
+                <div class="version-badge">v.1.1.0 PRO</div>
+            </div>
+        </header>
+
+        <div class="content">
+            <!-- DAFTAR ISI / TABLE OF CONTENTS -->
+            <div class="toc lang-content active" data-lang="id">
+                <h2>📋 Daftar Isi</h2>
+                <ol>
+                    <li><a href="#tentang">Tentang FacebookPro Blaster</a></li>
+                    <li><a href="#prereq">Prasyarat</a></li>
+                    <li><a href="#install">Instalasi & Setup</a></li>
+                    <li><a href="#license">Aktivasi Lisensi</a></li>
+                    <li><a href="#account">Konfigurasi Akun</a></li>
+                    <li><a href="#api">Kunci API</a></li>
+                    <li><a href="#bots">Bot yang Tersedia</a></li>
+                    <li><a href="#running">Menjalankan Bot</a></li>
+                    <li><a href="#features">Fitur Lengkap</a></li>
+                    <li><a href="#troubleshoot">Troubleshooting</a></li>
+                </ol>
+            </div>
+
+            <div class="toc lang-content" data-lang="en">
+                <h2>📋 Table of Contents</h2>
+                <ol>
+                    <li><a href="#tentang">About FacebookPro Blaster</a></li>
+                    <li><a href="#prereq">Prerequisites</a></li>
+                    <li><a href="#install">Installation & Setup</a></li>
+                    <li><a href="#license">License Activation</a></li>
+                    <li><a href="#account">Account Configuration</a></li>
+                    <li><a href="#api">API Keys</a></li>
+                    <li><a href="#bots">Available Bots</a></li>
+                    <li><a href="#running">Running Bots</a></li>
+                    <li><a href="#features">Complete Features</a></li>
+                    <li><a href="#troubleshoot">Troubleshooting</a></li>
+                </ol>
+            </div>
+
+            <!-- TENTANG -->
+            <div id="tentang" class="section lang-content active" data-lang="id">
+                <h2>🎯 Tentang FacebookPro Blaster</h2>
+                <p><strong>FacebookPro Blaster</strong> adalah platform automasi Facebook enterprise-grade yang
+                    dirancang khusus untuk mengelola multiple akun Facebook secara efisien, aman, dan otomatis. Dengan
+                    teknologi AI terbaru dan system concurrency management yang canggih, platform ini adalah solusi
+                    terbaik untuk agency, marketer, dan business owner.</p>
+
+                <h3>✨ Keunggulan Utama</h3>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>🔄 Multi-Account</h4>
+                        <p>Kelola hingga 50 akun dalam satu dashboard</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🤖 AI-Powered</h4>
+                        <p>Generasi konten dengan 40+ AI models</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>⚡ Smart Concurrency</h4>
+                        <p>System antrian dan distribusi yang optimal</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📱 Telegram Bot</h4>
+                        <p>Kontrol penuh via Telegram</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔒 Enterprise Security</h4>
+                        <p>Multi-layer security & encryption</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>⏰ 24/7 Automation</h4>
+                        <p>Berjalan otomatis tanpa pengawasan</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tentang" class="section lang-content" data-lang="en">
+                <h2>🎯 About FacebookPro Blaster</h2>
+                <p><strong>FacebookPro Blaster</strong> is an enterprise-grade Facebook automation platform specifically
+                    designed to manage multiple Facebook accounts efficiently, securely, and automatically. With the
+                    latest AI technology and sophisticated concurrency management system, this platform is the best
+                    solution for agencies, marketers, and business owners.</p>
+
+                <h3>✨ Key Features</h3>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>🔄 Multi-Account</h4>
+                        <p>Manage up to 50 accounts in one dashboard</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🤖 AI-Powered</h4>
+                        <p>Content generation with 40+ AI models</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>⚡ Smart Concurrency</h4>
+                        <p>Optimal queue and distribution system</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📱 Telegram Bot</h4>
+                        <p>Full control via Telegram</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔒 Enterprise Security</h4>
+                        <p>Multi-layer security & encryption</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>⏰ 24/7 Automation</h4>
+                        <p>Runs automatically without supervision</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PRASYARAT / PREREQUISITES -->
+            <div id="prereq" class="section lang-content active" data-lang="id">
+                <h2>1. Prasyarat</h2>
+                <ul>
+                    <li><strong>Node.js:</strong> Versi 18.x atau lebih baru (<a href="https://nodejs.org/"
+                            target="_blank">Download</a>)</li>
+                    <li><strong>Sistem Operasi:</strong> Windows 10+, Ubuntu 20.04+, Debian 11+, Fedora 36+, atau Arch
+                        Linux</li>
+                    <li><strong>Kunci Lisensi:</strong> Format <code>FBPRO-XXXX-XXXX-XXXX-XXXX</code></li>
+                    <li><strong>Akun Facebook:</strong> Akun aktif untuk otomasi</li>
+                </ul>
+            </div>
+
+            <div id="prereq" class="section lang-content" data-lang="en">
+                <h2>1. Prerequisites</h2>
+                <ul>
+                    <li><strong>Node.js:</strong> Version 18.x or newer (<a href="https://nodejs.org/"
+                            target="_blank">Download</a>)</li>
+                    <li><strong>Operating System:</strong> Windows 10+, Ubuntu 20.04+, Debian 11+, Fedora 36+, or Arch
+                        Linux</li>
+                    <li><strong>License Key:</strong> Format <code>FBPRO-XXXX-XXXX-XXXX-XXXX</code></li>
+                    <li><strong>Facebook Account:</strong> Active account for automation</li>
+                </ul>
+            </div>
+
+            <!-- INSTALASI / INSTALLATION -->
+            <div id="install" class="section lang-content active" data-lang="id">
+                <h2>2. Instalasi & Setup</h2>
+
+                <h3>🪟 Windows</h3>
+                <div class="step">
+                    <h4>Langkah 1: Ekstrak File</h4>
+                    <p>Ekstrak file ZIP ke <code>C:\FacebookProBlaster\</code></p>
+                </div>
+
+                <div class="step">
+                    <h4>Langkah 2: Jalankan Setup</h4>
+                    <p>Klik kanan <code>setup-windows.bat</code> → <strong>Run as administrator</strong></p>
+                    <div class="success">
+                        <strong>✅ Paling Mudah!</strong> Script ini langsung berfungsi tanpa konfigurasi apapun.
+                    </div>
+                </div>
+
+                <div class="warning">
+                    <strong>⚠️ Alternatif PowerShell:</strong> Jika menggunakan <code>setup-windows.ps1</code> dan
+                    diblokir, jalankan:
+                    <pre>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</pre>
+                </div>
+
+                <h3>🐧 Linux</h3>
+                <div class="step">
+                    <pre>unzip FacebookPro_Blaster_*.zip -d ~/FacebookProBlaster
+cd ~/FacebookProBlaster
+chmod +x setup-linux.sh
+./setup-linux.sh</pre>
+                </div>
+
+                <h3>🐧 Linux / VPS (Server-Side Secure)</h3>
+                <div class="step">
+                    <h4>Setup di VPS (Ubuntu/Debian) - Versi Secure</h4>
+                    <p>Versi ini menggunakan arsitektur keamanan tinggi dengan logic terkompilasi (.jsc).</p>
+                    <pre># Update & Install Requirements
+sudo apt update && sudo apt install -y nodejs npm python3.12 python3-pip
+
+# Extract package
+unzip FacebookPro_Blaster_Ultimate_Secure_*.zip -d ~/fbpro
+cd ~/fbpro
+
+# Install Dependencies
+npm install
+py -3.12 -m pip install insightface onnxruntime opencv-python
+
+# Activate license
+node start activate YOUR_LICENSE_KEY
+
+# Start system with PM2
+npm install -g pm2
+pm2 start start --name "fbpro-blaster"
+pm2 save</pre>
+                </div>
+
+                <div class="info">
+                    <strong>📋 Kebutuhan Server-Side:</strong>
+                    <ul>
+                        <li><strong>Node.js 20+:</strong> Menggunakan fitur-fitur runtime terbaru.</li>
+                        <li><strong>Python 3.12:</strong> Wajib untuk pemrosesan Face Swap lokal.</li>
+                        <li><strong>Internet:</strong> Memerlukan koneksi stabil untuk verifikasi logic handshake.</li>
+                    </ul>
+                </div>
+
+                <h3>Setup Manual (Jika Script Tidak Bekerja)</h3>
+                <div class="step">
+                    <pre>npm install
+mkdir accounts videos photos logs backups downloads temp data</pre>
+                </div>
+            </div>
+
+            <div id="install" class="section lang-content" data-lang="en">
+                <h2>2. Installation & Setup</h2>
+
+                <h3>🪟 Windows</h3>
+                <div class="step">
+                    <h4>Step 1: Extract Files</h4>
+                    <p>Extract ZIP file to <code>C:\FacebookProBlaster\</code></p>
+                </div>
+
+                <div class="step">
+                    <h4>Step 2: Run Setup</h4>
+                    <p>Right-click <code>setup-windows.bat</code> → <strong>Run as administrator</strong></p>
+                    <div class="success">
+                        <strong>✅ Easiest Method!</strong> This script works immediately without any configuration.
+                    </div>
+                </div>
+
+                <div class="warning">
+                    <strong>⚠️ PowerShell Alternative:</strong> If using <code>setup-windows.ps1</code> and it's
+                    blocked, run:
+                    <pre>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</pre>
+                </div>
+
+                <h3>🐧 Linux</h3>
+                <div class="step">
+                    <pre>unzip FacebookPro_Blaster_*.zip -d ~/FacebookProBlaster
+cd ~/FacebookProBlaster
+chmod +x setup-linux.sh
+./setup-linux.sh</pre>
+                </div>
+
+                <h3>🐧 Linux / VPS (Server-Side Secure)</h3>
+                <div class="step">
+                    <h4>Setup on VPS (Ubuntu/Debian) - Secure Edition</h4>
+                    <p>This version uses high-security architecture with compiled logic (.jsc).</p>
+                    <pre># Update & Install Requirements
+sudo apt update && sudo apt install -y nodejs npm python3.12 python3-pip
+
+# Extract package
+unzip FacebookPro_Blaster_Ultimate_Secure_*.zip -d ~/fbpro
+cd ~/fbpro
+
+# Install Dependencies
+npm install
+py -3.12 -m pip install insightface onnxruntime opencv-python
+
+# Activate license
+node start activate YOUR_LICENSE_KEY
+
+# Start system with PM2
+npm install -g pm2
+pm2 start start --name "fbpro-blaster"
+pm2 save</pre>
+                </div>
+
+                <div class="info">
+                    <strong>📋 Server-Side Requirements:</strong>
+                    <ul>
+                        <li><strong>Node.js 20+:</strong> For latest runtime features and performance.</li>
+                        <li><strong>Python 3.12:</strong> Required for local Face Swap processing.</li>
+                        <li><strong>Internet:</strong> Requires stable connection for secure handshake verification.
+                        </li>
+                    </ul>
+                </div>
+
+                <h3>Manual Setup (If Scripts Don't Work)</h3>
+                <div class="step">
+                    <pre>npm install
+mkdir accounts videos photos logs backups downloads temp data</pre>
+                </div>
+            </div>
+
+            <!-- AKTIVASI LISENSI / LICENSE ACTIVATION -->
+            <div id="license" class="section lang-content active" data-lang="id">
+                <h2>3. Aktivasi Lisensi</h2>
+                <div class="step">
+                    <h4>Aktivasi Lisensi Anda</h4>
+                    <pre>node bot/sys-init FBPRO-XXXX-XXXX-XXXX-XXXX</pre>
+                    <p><strong>Contoh:</strong></p>
+                    <pre>node bot/sys-init FBPRO-STRT-3847-9201-0001</pre>
+                </div>
+
+                <h3>Paket Lisensi</h3>
+                <table>
+                    <tr>
+                        <th>Paket</th>
+                        <th>Perangkat</th>
+                        <th>Akun FB</th>
+                        <th>Durasi</th>
+                        <th>Cocok Untuk</th>
+                    </tr>
+                    <tr>
+                        <td><strong>TRIAL</strong> 🎁</td>
+                        <td>1</td>
+                        <td>1</td>
+                        <td>3 Hari</td>
+                        <td>Testing & Demo</td>
+                    </tr>
+                    <tr>
+                        <td><strong>STARTER</strong></td>
+                        <td>2</td>
+                        <td>5</td>
+                        <td>1 Tahun</td>
+                        <td>Pemula & Individual</td>
+                    </tr>
+                    <tr>
+                        <td><strong>PRO</strong> ⭐</td>
+                        <td>5</td>
+                        <td>15</td>
+                        <td>2 Tahun</td>
+                        <td>Profesional & Bisnis</td>
+                    </tr>
+                    <tr>
+                        <td><strong>AGENCY</strong> 🚀</td>
+                        <td>15</td>
+                        <td>50</td>
+                        <td>2 Tahun</td>
+                        <td>Agency & Enterprise</td>
+                    </tr>
+                </table>
+
+                <div class="info">
+                    <strong>💡 Catatan:</strong>
+                    <ul>
+                        <li><strong>TRIAL:</strong> Gratis, 3 hari, 1x per device (HWID)</li>
+                        <li><strong>STARTER:</strong> Entry level, cocok untuk pemula</li>
+                        <li><strong>PRO:</strong> Paling populer! Best value untuk profesional</li>
+                        <li><strong>AGENCY:</strong> Unlimited power untuk operasi skala besar</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="license" class="section lang-content" data-lang="en">
+                <h2>3. License Activation</h2>
+                <div class="step">
+                    <h4>Activate Your License</h4>
+                    <pre>node bot/sys-init FBPRO-XXXX-XXXX-XXXX-XXXX</pre>
+                    <p><strong>Example:</strong></p>
+                    <pre>node bot/sys-init FBPRO-STRT-3847-9201-0001</pre>
+                </div>
+
+                <h3>License Packages</h3>
+                <table>
+                    <tr>
+                        <th>Package</th>
+                        <th>Devices</th>
+                        <th>FB Accounts</th>
+                        <th>Duration</th>
+                        <th>Best For</th>
+                    </tr>
+                    <tr>
+                        <td><strong>TRIAL</strong> 🎁</td>
+                        <td>1</td>
+                        <td>1</td>
+                        <td>3 Days</td>
+                        <td>Testing & Demo</td>
+                    </tr>
+                    <tr>
+                        <td><strong>STARTER</strong></td>
+                        <td>2</td>
+                        <td>5</td>
+                        <td>1 Year</td>
+                        <td>Beginners & Individual</td>
+                    </tr>
+                    <tr>
+                        <td><strong>PRO</strong> ⭐</td>
+                        <td>5</td>
+                        <td>15</td>
+                        <td>2 Years</td>
+                        <td>Professional & Business</td>
+                    </tr>
+                    <tr>
+                        <td><strong>AGENCY</strong> 🚀</td>
+                        <td>15</td>
+                        <td>50</td>
+                        <td>2 Years</td>
+                        <td>Agency & Enterprise</td>
+                    </tr>
+                </table>
+
+                <div class="info">
+                    <strong>💡 Notes:</strong>
+                    <ul>
+                        <li><strong>TRIAL:</strong> Free, 3 days, 1x per device (HWID)</li>
+                        <li><strong>STARTER:</strong> Entry level, perfect for beginners</li>
+                        <li><strong>PRO:</strong> Most popular! Best value for professionals</li>
+                        <li><strong>AGENCY:</strong> Unlimited power for large-scale operations</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- KONFIGURASI AKUN / ACCOUNT CONFIGURATION -->
+            <div id="account" class="section lang-content active" data-lang="id">
+                <h2>4. Konfigurasi Akun</h2>
+                <div class="step">
+                    <h4>Setup Interaktif</h4>
+                    <pre>node bot/account-setup</pre>
+                    <p>Anda akan ditanya:</p>
+                    <ul>
+                        <li>ID Akun (misal, account1)</li>
+                        <li>Nama tampilan</li>
+                        <li>Tipe persona (friendly, professional, humorous, dll.)</li>
+                        <li>Kredensial auto-login (direkomendasikan)</li>
+                        <li>Fitur AI (OpenRouter, Memory System)</li>
+                        <li>Konfigurasi Telegram</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="account" class="section lang-content" data-lang="en">
+                <h2>4. Account Configuration</h2>
+                <div class="step">
+                    <h4>Interactive Setup</h4>
+                    <pre>node bot/account-setup</pre>
+                    <p>You'll be asked for:</p>
+                    <ul>
+                        <li>Account ID (e.g., account1)</li>
+                        <li>Display name</li>
+                        <li>Persona type (friendly, professional, humorous, etc.)</li>
+                        <li>Auto-login credentials (recommended)</li>
+                        <li>AI features (OpenRouter, Memory System)</li>
+                        <li>Telegram configuration</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- API KEYS -->
+            <div id="api" class="section lang-content active" data-lang="id">
+                <h2>5. Kunci API</h2>
+
+                <h3>🔑 OpenRouter (Prioritas)</h3>
+                <div class="step">
+                    <ol>
+                        <li>Kunjungi <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a></li>
+                        <li>Buat akun & generate API key</li>
+                        <li>Tambahkan ke <code>accounts/AKUN_ANDA/openrouter_keys.txt</code></li>
+                    </ol>
+                </div>
+
+                <h3>🤖 Google Gemini (Cadangan)</h3>
+                <div class="step">
+                    <ol>
+                        <li>Kunjungi <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI
+                                Studio</a></li>
+                        <li>Klik "Create API key"</li>
+                        <li>Tambahkan ke <code>accounts/AKUN_ANDA/gemini_keys.txt</code></li>
+                    </ol>
+                    <div class="success">
+                        <strong>✅ GRATIS!</strong> Gemini Flash tersedia gratis dengan quota yang generous.
+                    </div>
+                </div>
+
+                <h3>📱 Telegram Bot</h3>
+                <div class="step">
+                    <h4>Langkah 1: Buat Bot</h4>
+                    <ol>
+                        <li>Kirim pesan ke <code>@BotFather</code> di Telegram</li>
+                        <li>Kirim <code>/newbot</code> dan ikuti instruksi</li>
+                        <li>Salin <strong>Bot Token</strong> yang Anda terima</li>
+                    </ol>
+                </div>
+
+                <div class="step">
+                    <h4>Langkah 2: Dapatkan Chat ID</h4>
+                    <ol>
+                        <li>Kirim pesan ke <code>@userinfobot</code> di Telegram</li>
+                        <li>Salin <strong>Chat ID</strong> Anda</li>
+                    </ol>
+                </div>
+
+                <div class="step">
+                    <h4>Langkah 3: Konfigurasi telegram.json</h4>
+                    <p>Edit <code>telegram.json</code> di folder root:</p>
+                    <pre>{
+  "botToken": "BOT_TOKEN_ANDA_DISINI",
+  "allowedUserIds": [CHAT_ID_ANDA],
+  "chatId": CHAT_ID_ANDA
+}</pre>
+                </div>
+            </div>
+
+            <div id="api" class="section lang-content" data-lang="en">
+                <h2>5. API Keys</h2>
+
+                <h3>🔑 OpenRouter (Priority)</h3>
+                <div class="step">
+                    <ol>
+                        <li>Visit <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a></li>
+                        <li>Create account & generate API key</li>
+                        <li>Add to <code>accounts/YOUR_ACCOUNT/openrouter_keys.txt</code></li>
+                    </ol>
+                </div>
+
+                <h3>🤖 Google Gemini (Fallback)</h3>
+                <div class="step">
+                    <ol>
+                        <li>Visit <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>
+                        </li>
+                        <li>Click "Create API key"</li>
+                        <li>Add to <code>accounts/YOUR_ACCOUNT/gemini_keys.txt</code></li>
+                    </ol>
+                    <div class="success">
+                        <strong>✅ FREE!</strong> Gemini Flash is available for free with generous quota.
+                    </div>
+                </div>
+
+                <h3>📱 Telegram Bot</h3>
+                <div class="step">
+                    <h4>Step 1: Create Bot</h4>
+                    <ol>
+                        <li>Message <code>@BotFather</code> on Telegram</li>
+                        <li>Send <code>/newbot</code> and follow instructions</li>
+                        <li>Copy the <strong>Bot Token</strong> you receive</li>
+                    </ol>
+                </div>
+
+                <div class="step">
+                    <h4>Step 2: Get Chat ID</h4>
+                    <ol>
+                        <li>Message <code>@userinfobot</code> on Telegram</li>
+                        <li>Copy your <strong>Chat ID</strong></li>
+                    </ol>
+                </div>
+
+                <div class="step">
+                    <h4>Step 3: Configure telegram.json</h4>
+                    <p>Edit <code>telegram.json</code> in root folder:</p>
+                    <pre>{
+  "botToken": "YOUR_BOT_TOKEN_HERE",
+  "allowedUserIds": [YOUR_CHAT_ID],
+  "chatId": YOUR_CHAT_ID
+}</pre>
+                </div>
+            </div>
+
+            <!-- BOT YANG TERSEDIA / AVAILABLE BOTS -->
+            <div id="bots" class="section lang-content active" data-lang="id">
+                <h2>6. Bot yang Tersedia</h2>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>👍 autolike</h4>
+                        <p>Auto like postingan di timeline</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📹 uploadreels</h4>
+                        <p>Upload reels dengan caption AI</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📝 updatestatus</h4>
+                        <p>Post status dengan AI</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>💬 videocomment</h4>
+                        <p>Komentar di video</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>👥 groupcomment</h4>
+                        <p>Komentar di grup</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>⏱️ timelinecomment</h4>
+                        <p>Komentar di timeline</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔄 sharereels</h4>
+                        <p>Share reels</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>👀 viewstory</h4>
+                        <p>Lihat story otomatis</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>↩️ reply</h4>
+                        <p>Balas komentar</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>✅ confirm</h4>
+                        <p>Konfirmasi pertemanan</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🍪 cookiegenerator</h4>
+                        <p>Generate cookies Facebook</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📥 scrape</h4>
+                        <p>Scrape reels dari Facebook</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="bots" class="section lang-content" data-lang="en">
+                <h2>6. Available Bots</h2>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>👍 autolike</h4>
+                        <p>Auto like timeline posts</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📹 uploadreels</h4>
+                        <p>Upload reels with AI captions</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📝 updatestatus</h4>
+                        <p>Post AI-generated status</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>💬 videocomment</h4>
+                        <p>Comment on videos</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>👥 groupcomment</h4>
+                        <p>Comment in groups</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>⏱️ timelinecomment</h4>
+                        <p>Comment on timeline</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔄 sharereels</h4>
+                        <p>Share reels</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>👀 viewstory</h4>
+                        <p>Auto view stories</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>↩️ reply</h4>
+                        <p>Reply to comments</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>✅ confirm</h4>
+                        <p>Confirm friend requests</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🍪 cookiegenerator</h4>
+                        <p>Generate Facebook cookies</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📥 scrape</h4>
+                        <p>Scrape reels from Facebook</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MENJALANKAN BOT / RUNNING BOTS -->
+            <div id="running" class="section lang-content active" data-lang="id">
+                <h2>7. Menjalankan Bot</h2>
+
+                <h3>Jalankan Manual</h3>
+                <div class="step">
+                    <pre>node bot/executor run NAMA_BOT ID_AKUN</pre>
+                    <p><strong>Contoh:</strong></p>
+                    <pre>node bot/executor run autolike account1
+node bot/executor run uploadreels account1
+node bot/executor run updatestatus account1</pre>
+                </div>
+
+                <h3>⚡ NPM Shortcuts (Cara Tercepat!)</h3>
+                <div class="success">
+                    <strong>✨ Rekomendasi!</strong> Gunakan NPM shortcuts untuk kemudahan maksimal.
+                </div>
+
+                <h4>🔑 Aktivasi Lisensi</h4>
+                <div class="step">
+                    <pre>npm run activate</pre>
+                </div>
+
+                <h4>🤖 Menjalankan Bot (Headless Mode - Default)</h4>
+                <div class="step">
+                    <p>Browser tersembunyi, cocok untuk production:</p>
+                    <pre>npm run autolike account1
+npm run videocomment account1
+npm run timelinecomment account1
+npm run groupcomment account1
+npm run updatestatus account1
+npm run uploadreels account1
+npm run sharereels account1
+npm run confirm account1
+npm run scrape account1
+npm run reply account1
+npm run viewstory account1</pre>
+                </div>
+
+                <h4>👁️ Menjalankan Bot (Show Browser - Debugging)</h4>
+                <div class="step">
+                    <p>Browser terlihat, cocok untuk debugging dan monitoring:</p>
+                    <pre>npm run autolike:show account1
+npm run videocomment:show account1
+npm run timelinecomment:show account1
+npm run groupcomment:show account1
+npm run updatestatus:show account1
+npm run uploadreels:show account1
+npm run sharereels:show account1
+npm run confirm:show account1
+npm run scrape:show account1
+npm run reply:show account1
+npm run viewstory:show account1</pre>
+                </div>
+
+                <h4>🍪 Cookie Generator</h4>
+                <div class="step">
+                    <p>Generate dan kelola Facebook cookies:</p>
+                    <pre># Cek validitas cookies semua akun
+npm run cookies:check
+
+# Generate cookies (headless mode)
+npm run cookies:generate account1
+
+# Generate cookies (show browser)
+npm run cookies:generate:show account1
+
+# Smart mode: cek dulu, generate jika perlu (headless)
+npm run cookies:ensure account1
+
+# Smart mode: cek dulu, generate jika perlu (show browser)
+npm run cookies:ensure:show account1</pre>
+                </div>
+
+                <h4>🛠️ Utility Commands</h4>
+                <div class="step">
+                    <pre># Setup account baru
+npm run setup:account
+
+# Cek status system
+npm run test:status
+
+# List semua akun
+npm run test:list
+
+# Validate cookies
+npm run test:cookies
+
+# Refresh cookies
+npm run refresh:cookies
+
+# Start scheduler (PM2)
+npm start
+
+# Stop scheduler
+npm stop
+
+# Restart scheduler
+npm restart
+
+# View logs
+npm run logs</pre>
+                </div>
+
+                <h3>Jalankan Terjadwal (PM2)</h3>
+                <div class="step">
+                    <pre>pm2 start ecosystem.config.js
+pm2 logs
+pm2 monit</pre>
+                </div>
+
+                <h3>Kontrol via Telegram</h3>
+                <div class="step">
+                    <p>Setelah setup Telegram Bot, gunakan perintah:</p>
+                    <ul>
+                        <li><code>/start</code> - Mulai bot</li>
+                        <li><code>/status</code> - Lihat status</li>
+                        <li><code>/run</code> - Jalankan bot</li>
+                        <li><code>/stop</code> - Hentikan bot</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="running" class="section lang-content" data-lang="en">
+                <h2>7. Running Bots</h2>
+
+                <h3>Manual Run</h3>
+                <div class="step">
+                    <pre>node bot/executor run BOT_NAME ACCOUNT_ID</pre>
+                    <p><strong>Examples:</strong></p>
+                    <pre>node bot/executor run autolike account1
+node bot/executor run uploadreels account1
+node bot/executor run updatestatus account1</pre>
+                </div>
+
+                <h3>⚡ NPM Shortcuts (Fastest Way!)</h3>
+                <div class="success">
+                    <strong>✨ Recommended!</strong> Use NPM shortcuts for maximum convenience.
+                </div>
+
+                <h4>🔑 License Activation</h4>
+                <div class="step">
+                    <pre>npm run activate</pre>
+                </div>
+
+                <h4>🤖 Running Bots (Headless Mode - Default)</h4>
+                <div class="step">
+                    <p>Browser hidden, suitable for production:</p>
+                    <pre>npm run autolike account1
+npm run videocomment account1
+npm run timelinecomment account1
+npm run groupcomment account1
+npm run updatestatus account1
+npm run uploadreels account1
+npm run sharereels account1
+npm run confirm account1
+npm run scrape account1
+npm run reply account1
+npm run viewstory account1</pre>
+                </div>
+
+                <h4>👁️ Running Bots (Show Browser - Debugging)</h4>
+                <div class="step">
+                    <p>Browser visible, suitable for debugging and monitoring:</p>
+                    <pre>npm run autolike:show account1
+npm run videocomment:show account1
+npm run timelinecomment:show account1
+npm run groupcomment:show account1
+npm run updatestatus:show account1
+npm run uploadreels:show account1
+npm run sharereels:show account1
+npm run confirm:show account1
+npm run scrape:show account1
+npm run reply:show account1
+npm run viewstory:show account1</pre>
+                </div>
+
+                <h4>🍪 Cookie Generator</h4>
+                <div class="step">
+                    <p>Generate and manage Facebook cookies:</p>
+                    <pre># Check cookie validity for all accounts
+npm run cookies:check
+
+# Generate cookies (headless mode)
+npm run cookies:generate account1
+
+# Generate cookies (show browser)
+npm run cookies:generate:show account1
+
+# Smart mode: check first, generate if needed (headless)
+npm run cookies:ensure account1
+
+# Smart mode: check first, generate if needed (show browser)
+npm run cookies:ensure:show account1</pre>
+                </div>
+
+                <h4>🛠️ Utility Commands</h4>
+                <div class="step">
+                    <pre># Setup new account
+npm run setup:account
+
+# Check system status
+npm run test:status
+
+# List all accounts
+npm run test:list
+
+# Validate cookies
+npm run test:cookies
+
+# Refresh cookies
+npm run refresh:cookies
+
+# Start scheduler (PM2)
+npm start
+
+# Stop scheduler
+npm stop
+
+# Restart scheduler
+npm restart
+
+# View logs
+npm run logs</pre>
+                </div>
+
+                <h3>Scheduled Run (PM2)</h3>
+                <div class="step">
+                    <pre>pm2 start ecosystem.config.js
+pm2 logs
+pm2 monit</pre>
+                </div>
+
+                <h3>Control via Telegram</h3>
+                <div class="step">
+                    <p>After setting up Telegram Bot, use commands:</p>
+                    <ul>
+                        <li><code>/start</code> - Start bot</li>
+                        <li><code>/status</code> - View status</li>
+                        <li><code>/run</code> - Run bot</li>
+                        <li><code>/stop</code> - Stop bot</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- FITUR LENGKAP / COMPLETE FEATURES -->
+            <div id="features" class="section lang-content active" data-lang="id">
+                <h2>8. Fitur Lengkap</h2>
+
+                <h3>🔄 Multi-Account Management</h3>
+                <div class="info">
+                    <p>Kelola semua akun Facebook Anda dari satu tempat:</p>
+                    <ul>
+                        <li>Konfigurasi individual per akun</li>
+                        <li>Monitoring health setiap akun</li>
+                        <li>Auto cookie refresh</li>
+                        <li>Account isolation (process terpisah)</li>
+                        <li>Independent scheduling</li>
+                    </ul>
+                </div>
+
+                <h3>⚡ Smart Concurrency System</h3>
+                <div class="info">
+                    <p>System canggih untuk managing banyak akun:</p>
+                    <ul>
+                        <li><strong>Priority Queue:</strong> HIGH, NORMAL, LOW priority</li>
+                        <li><strong>Fair Distribution:</strong> Fairness Score 0-100</li>
+                        <li><strong>Account Rotation:</strong> Round-robin automatic</li>
+                        <li><strong>Cooldown Protection:</strong> Jeda minimum 1 menit</li>
+                        <li><strong>Performance:</strong> Memory efficient, no leaks</li>
+                    </ul>
+                </div>
+
+                <h3>🤖 AI-Powered Content</h3>
+                <div class="info">
+                    <p>Komentar dan caption otomatis dengan AI:</p>
+                    <ul>
+                        <li>40+ AI Models tersedia</li>
+                        <li>Google Gemini Flash (GRATIS!)</li>
+                        <li>GPT-4, Claude 3, Llama 3</li>
+                        <li>Context-aware responses</li>
+                        <li>Multi-language support</li>
+                    </ul>
+                </div>
+
+                <h3>📊 Real-time Monitoring</h3>
+                <div class="info">
+                    <p>Dashboard monitoring lengkap:</p>
+                    <ul>
+                        <li>Activity logs real-time</li>
+                        <li>Success/failure statistics</li>
+                        <li>Account health monitoring</li>
+                        <li>Performance metrics</li>
+                        <li>Telegram notifications</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="features" class="section lang-content" data-lang="en">
+                <h2>8. Complete Features</h2>
+
+                <h3>🔄 Multi-Account Management</h3>
+                <div class="info">
+                    <p>Manage all your Facebook accounts from one place:</p>
+                    <ul>
+                        <li>Individual configuration per account</li>
+                        <li>Health monitoring for each account</li>
+                        <li>Auto cookie refresh</li>
+                        <li>Account isolation (separate processes)</li>
+                        <li>Independent scheduling</li>
+                    </ul>
+                </div>
+
+                <h3>⚡ Smart Concurrency System</h3>
+                <div class="info">
+                    <p>Advanced system for managing many accounts:</p>
+                    <ul>
+                        <li><strong>Priority Queue:</strong> HIGH, NORMAL, LOW priority</li>
+                        <li><strong>Fair Distribution:</strong> Fairness Score 0-100</li>
+                        <li><strong>Account Rotation:</strong> Automatic round-robin</li>
+                        <li><strong>Cooldown Protection:</strong> Minimum 1 minute interval</li>
+                        <li><strong>Performance:</strong> Memory efficient, no leaks</li>
+                    </ul>
+                </div>
+
+                <h3>🤖 AI-Powered Content</h3>
+                <div class="info">
+                    <p>Automatic comments and captions with AI:</p>
+                    <ul>
+                        <li>40+ AI Models available</li>
+                        <li>Google Gemini Flash (FREE!)</li>
+                        <li>GPT-4, Claude 3, Llama 3</li>
+                        <li>Context-aware responses</li>
+                        <li>Multi-language support</li>
+                    </ul>
+                </div>
+
+                <h3>📊 Real-time Monitoring</h3>
+                <div class="info">
+                    <p>Complete monitoring dashboard:</p>
+                    <ul>
+                        <li>Real-time activity logs</li>
+                        <li>Success/failure statistics</li>
+                        <li>Account health monitoring</li>
+                        <li>Performance metrics</li>
+                        <li>Telegram notifications</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!--  TROUBLESHOOTING -->
+            <div id="troubleshoot" class="section lang-content active" data-lang="id">
+                <h2>9. Troubleshooting</h2>
+
+                <h3>Masalah Windows</h3>
+                <div class="step">
+                    <h4>❌ "Scripts disabled" / Error Execution Policy</h4>
+                    <p><strong>Solusi Terbaik:</strong> Gunakan <code>setup-windows.bat</code> (tidak ada masalah
+                        execution policy!)</p>
+                    <p><strong>Alternatif:</strong></p>
+                    <pre>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</pre>
+                </div>
+
+                <div class="step">
+                    <h4>❌ "Node not found"</h4>
+                    <p>Restart PowerShell/Command Prompt atau komputer setelah instalasi Node.js</p>
+                </div>
+
+                <h3>Masalah Linux</h3>
+                <div class="step">
+                    <h4>❌ "Permission denied"</h4>
+                    <pre>chmod +x setup-linux.sh</pre>
+                </div>
+
+                <div class="step">
+                    <h4>❌ "npm install fails"</h4>
+                    <pre>npm cache clean --force
+npm install</pre>
+                </div>
+
+                <h3>Masalah Lisensi</h3>
+                <div class="step">
+                    <h4>❌ "Invalid license"</h4>
+                    <p>Periksa format: <code>FBPRO-XXXX-XXXX-XXXX-XXXX</code></p>
+                </div>
+
+                <div class="step">
+                    <h4>❌ "HWID limit reached"</h4>
+                    <p>Hubungi support untuk reset HWID atau upgrade paket</p>
+                </div>
+
+                <div class="step">
+                    <h4>❌ "CloudDB not configured"</h4>
+                    <p>Pastikan file <code>.env</code> ada di folder root dengan Vault credentials yang benar</p>
+                </div>
+
+                <div class="step">
+                    <h4>❌ "Account limit exceeded"</h4>
+                    <p>Anda telah mencapai batas akun untuk paket lisensi Anda. Upgrade ke paket yang lebih tinggi atau
+                        hapus beberapa akun.</p>
+                </div>
+            </div>
+
+            <div id="troubleshoot" class="section lang-content" data-lang="en">
+                <h2>9. Troubleshooting</h2>
+
+                <h3>Windows Issues</h3>
+                <div class="step">
+                    <h4>❌ "Scripts disabled" / Execution Policy Error</h4>
+                    <p><strong>Best Solution:</strong> Use <code>setup-windows.bat</code> (no execution policy issues!)
+                    </p>
+                    <p><strong>Alternative:</strong></p>
+                    <pre>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</pre>
+                </div>
+
+                <div class="step">
+                    <h4>❌ "Node not found"</h4>
+                    <p>Restart PowerShell/Command Prompt or computer after Node.js installation</p>
+                </div>
+
+                <h3>Linux Issues</h3>
+                <div class="step">
+                    <h4>❌ "Permission denied"</h4>
+                    <pre>chmod +x setup-linux.sh</pre>
+                </div>
+
+                <div class="step">
+                    <h4>❌ "npm install fails"</h4>
+                    <pre>npm cache clean --force
+npm install</pre>
+                </div>
+
+                <h3>License Issues</h3>
+                <div class="step">
+                    <h4>❌ "Invalid license"</h4>
+                    <p>Check format: <code>FBPRO-XXXX-XXXX-XXXX-XXXX</code></p>
+                </div>
+
+                <div class="step">
+                    <h4>❌ "HWID limit reached"</h4>
+                    <p>Contact support to reset HWID or upgrade package</p>
+                </div>
+
+                <div class="step">
+                    <h4>❌ "CloudDB not configured"</h4>
+                    <p>Ensure <code>.env</code> file exists in root folder with correct Vault credentials</p>
+                </div>
+
+                <div class="step">
+                    <h4>❌ "Account limit exceeded"</h4>
+                    <p>You've reached the account limit for your license package. Upgrade to a higher package or remove
+                        some accounts.</p>
+                </div>
+            </div>
+
+        </div>
+
+        <footer>
+            <div class="lang-content active" data-lang="id">
+                <p><strong>© 2026 FacebookPro Blaster</strong></p>
+                <p>Platform Automasi Facebook Enterprise-Grade</p>
+                <p style="margin-top: 20px; opacity: 0.8;">📧 Support: scwhhhhg@gmail.com</p>
+            </div>
+            <div class="lang-content" data-lang="en">
+                <p><strong>© 2026 FacebookPro Blaster</strong></p>
+                <p>Enterprise-Grade Facebook Automation Platform</p>
+                <p style="margin-top: 20px; opacity: 0.8;">📧 Support: scwhhhhg@gmail.com</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        function switchLang(lang) {
+            // Update active lang button
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Show/hide lang content
+            document.querySelectorAll('.lang-content').forEach(content => {
+                if (content.getAttribute('data-lang') === lang) {
+                    content.classList.add('active');
+                } else {
+                    content.classList.remove('active');
+                }
+            });
+
+            // Update html lang attribute
+            document.documentElement.lang = lang;
+        }
+    </script>
+</body>
+
+</html>

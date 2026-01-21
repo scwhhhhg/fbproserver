@@ -19,44 +19,65 @@ Module.prototype.require = function (id) {
         return originalRequire.apply(this, arguments);
     }
 
-    // Resolve the full path
+    // Try to resolve the path - first with .js, then without
+    let resolvedPath;
     try {
-        const resolvedPath = Module._resolveFilename(id, this);
+        resolvedPath = Module._resolveFilename(id, this);
+    } catch (err) {
+        // If resolution failed, try without .js extension (for encrypted/extension-less files)
+        const dirname = path.dirname(this.filename);
+        const basename = path.basename(id, '.js');
+        resolvedPath = path.join(dirname, basename);
 
-        // Check if already cached
-        if (decryptedModuleCache.has(resolvedPath)) {
-            return decryptedModuleCache.get(resolvedPath);
+        // Check if file exists without extension
+        if (!fsSync.existsSync(resolvedPath)) {
+            // File doesn't exist, use original require
+            return originalRequire.apply(this, arguments);
         }
+    }
 
-        // Try to read the file
-        try {
-            const content = fsSync.readFileSync(resolvedPath, 'utf8');
+    // Check if already cached
+    if (decryptedModuleCache.has(resolvedPath)) {
+        return decryptedModuleCache.get(resolvedPath);
+    }
 
-            // Check if file is encrypted (hex format)
-            const isEncrypted = /^[0-9a-f]+$/i.test(content.trim());
+    // Try to read the file
+    try {
+        const content = fsSync.readFileSync(resolvedPath, 'utf8');
 
-            if (isEncrypted) {
-                // File is encrypted, decrypt it
-                const decrypted = decryptModuleContent(content);
+        // Check if file is encrypted (hex format)
+        const isEncrypted = /^[0-9a-f]+$/i.test(content.trim());
 
-                // Create a new module and compile the decrypted code
-                const newModule = new Module(resolvedPath, this);
-                newModule.filename = resolvedPath;
-                newModule.paths = Module._nodeModulePaths(path.dirname(resolvedPath));
+        if (isEncrypted) {
+            // File is encrypted, decrypt it
+            const decrypted = decryptModuleContent(content);
 
-                // Compile the decrypted code
-                newModule._compile(decrypted, resolvedPath);
+            // Create a new module and compile the decrypted code
+            const newModule = new Module(resolvedPath, this);
+            newModule.filename = resolvedPath;
+            newModule.paths = Module._nodeModulePaths(path.dirname(resolvedPath));
 
-                // Cache the module
-                decryptedModuleCache.set(resolvedPath, newModule.exports);
+            // Compile the decrypted code
+            newModule._compile(decrypted, resolvedPath);
 
-                return newModule.exports;
-            }
-        } catch (err) {
-            // If file doesn't exist or can't be read, fall through to original require
+            // Cache the module
+            decryptedModuleCache.set(resolvedPath, newModule.exports);
+
+            return newModule.exports;
+        } else {
+            // File exists but is NOT encrypted (plain JS wrapper without extension)
+            const newModule = new Module(resolvedPath, this);
+            newModule.filename = resolvedPath;
+            newModule.paths = Module._nodeModulePaths(path.dirname(resolvedPath));
+            newModule._compile(content, resolvedPath);
+
+            // Cache it!
+            decryptedModuleCache.set(resolvedPath, newModule.exports);
+
+            return newModule.exports;
         }
     } catch (err) {
-        // If resolve fails
+        // If file doesn't exist or can't be read, fall through to original require
     }
 
     // Not encrypted or error, use original require
@@ -112,7 +133,11 @@ module.exports = {
 // ============================================================================
 
 // If this script is run directly (not required as module)
-if (require.main === module) {
+if (require.main === module || process.argv[1].includes('loader')) {
+    // Keep alive during boot
+    const bootKeepAlive = setInterval(() => { }, 1000);
+    setTimeout(() => clearInterval(bootKeepAlive), 60000);
+
     const scriptName = process.argv[2];
     const accountId = process.argv[3];
 
@@ -126,6 +151,19 @@ if (require.main === module) {
     if (accountId) {
         process.env.ACCOUNT_ID = accountId;
         process.env.BOT_NAME = scriptName;
+    }
+
+    // Force load the executor environment to ensure BYTENODE and REQUIRE HOOKS are active
+    try {
+        const executorEnv = path.join(__dirname, 'executor');
+        if (fsSync.existsSync(executorEnv)) {
+            require(executorEnv);
+        } else {
+            // Fallback for dev mode
+            require(path.join(__dirname, 'executor'));
+        }
+    } catch (e) {
+        // Ignore if already loaded or fail safely, we just want the hooks
     }
 
     try {
