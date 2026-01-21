@@ -4993,11 +4993,12 @@ try {
       content_filter: "high"
     },
     pollinations_settings: {
-      model: "flux",
-      width: 1280,
-      height: 1600,
+      model: "flux-pro",
+      width: 1024,
+      height: 1280,
       nologo: true,
-      enhance: true
+      enhance: true,
+      private: false
     },
     nanobanana_settings: {
       face_reference: "face_reference.jpg",

@@ -11,25 +11,28 @@ def swap_face(source_path, target_path, output_path):
         app = FaceAnalysis(name='buffalo_l')
         app.prepare(ctx_id=0, det_size=(640, 640))
         
-        # Search for model in common locations
+        # Search for model in common locations (NO DOWNLOADS)
         model_name = 'inswapper_128.onnx'
         model_path = None
         
-        # Check current dir, script dir, and user home
-        search_dirs = [os.getcwd(), os.path.dirname(__file__), os.path.expanduser('~/.insightface/models')]
+        # Check explicit relative paths first
+        possible_paths = [
+            os.path.join(os.getcwd(), 'bot', model_name),  # C:\fbproblaster\bot\inswapper_128.onnx
+            os.path.join(os.path.dirname(__file__), model_name), # Script dir
+            os.path.join(os.getcwd(), model_name), # CWD
+        ]
         
-        for d in search_dirs:
-            p = os.path.join(d, model_name)
+        for p in possible_paths:
             if os.path.exists(p):
                 model_path = p
+                print(f"Found model at: {p}")
                 break
         
-        if model_path:
-            print(f"Loading local model from: {model_path}")
-            swapper = insightface.model_zoo.get_model(model_path)
-        else:
-            print(f"Model {model_name} not found locally, attempting download...")
-            swapper = insightface.model_zoo.get_model(model_name, download=True, download_zip=True)
+        if not model_path:
+            raise FileNotFoundError(f"Model {model_name} not found in any of these locations: {possible_paths}")
+            
+        print(f"Loading local model from: {model_path}")
+        swapper = insightface.model_zoo.get_model(model_path, download=False)
 
         # Read images
         img_source = cv2.imread(source_path)
