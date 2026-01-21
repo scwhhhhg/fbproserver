@@ -5356,9 +5356,18 @@ async function generateWithPollinationsText(basePrompt, memory) {
       headers['Authorization'] = \`Bearer \${config.pollinations_settings.api_key}\`;
     }
 
-    const response = await axios.get(url, { headers, timeout: 30000 });
+    const response = await axios.get(url, {
+      headers,
+      timeout: 30000,
+      responseType: 'text' // Force text response to avoid auto JSON parsing if unwanted
+    });
 
-    const text = response.data?.trim();
+    let text = response.data;
+    if (typeof text !== 'string') {
+      text = String(text);
+    }
+    text = text?.trim();
+
     if (!text) {
       throw new Error('Empty response from Pollinations');
     }
