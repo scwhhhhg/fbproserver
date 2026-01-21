@@ -439,11 +439,11 @@ class AccountSetup {
         headless: "new",
         minIntervalSeconds: 300,
         maxIntervalSeconds: 600,
-        gemini_prompt: "Tulis status Facebook singkat (2–4 kalimat) dengan gaya bahasa santai dan personal seolah ditulis oleh seorang gadis muda berusia 20-an. Fokus Utama: Pastikan konten status sangat relevan dengan waktu dan hari saat ini (Pagi/Siang/Sore/Malam, Hari Kerja/Weekend). Pagi: (Senin-Jumat) Tentang kopi, semangat sat set, atau rasa ngantuk. Siang: Tentang burnout ringan, deadline, atau kerandoman jam makan. Sore: Tentang healing tipis-tipis, macet, atau senja. Malam: (Weekend/Weekday) Tentang self-reward, rebahan, atau refleksi mellow. Topik status harus variatif (cinta, persahabatan, kuliah, pekerjaan, hal receh yang relate). Gunakan bahasa gaul anak muda Indonesia, campur 2–3 emotikon yang sesuai. Variasikan antara nada yang lucu/receh, mellow/puitis sederhana, random, atau penuh semangat. Buatkan satu saja, Jangan tambahkan tanda kutip dan jangan tambahkan penjelasan",
+        gemini_prompt: "Buat status Facebook singkat (1-2 kalimat) yang santai ala anak muda Jakarta (Bahasa Gaul/Jaksel style dikit boleh). Topik: Relevan dengan waktu sekarang (Pagi/Siang/Sore/Malam). Hindari bahasa puitis/baku! Gunakan kata-kata seperti: 'ngopi', 'gabut', 'otw', 'capek', 'semangat', 'bestie'. Contoh: 'Pagi-pagi udah kena macet, butuh asupan kopi nih ☕' atau 'Akhirnya weekend, waktunya hibernasi seharian 😴'. Langsung tulis statusnya saja tanpa pembuka.",
         ai_settings: {
           use_openrouter: true,
           use_gemini: true,
-          prefer_provider: "gemini",
+          prefer_provider: "openrouter",
           switch_on_failure: true
         },
         mention_settings: {
@@ -464,9 +464,21 @@ class AccountSetup {
         },
         photo_settings: {
           enabled: true,
+          use_pollinations: true,
+          use_local_faceswap: true,
+          use_local_photos: true,
           orientation: "portrait",
           per_page: 10,
           content_filter: "high"
+        },
+        pollinations_settings: {
+          model: "flux-pro",
+          width: 1024,
+          height: 1280,
+          nologo: true,
+          enhance: true,
+          private: false,
+          api_key: ""
         }
       },
       reply: {

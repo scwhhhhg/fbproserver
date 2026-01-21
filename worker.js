@@ -5553,16 +5553,16 @@ CONTOH STYLE (jangan copy, buat yang baru!):
     try {
       let result;
 
-      // Priority: Pollinations (OpenAI) -> OpenRouter -> Gemini
+      // Priority: OpenRouter → Pollinations → Gemini (OpenRouter best for Indonesian)
       try {
-        console.log(\`[\${ACCOUNT_ID}] 🔄 Attempt \${attempts}/\${maxAttempts}: Trying Pollinations.ai...\`);
-        result = await generateWithPollinationsText(basePrompt, memory);
-      } catch (pollError) {
+        console.log(\`[\${ACCOUNT_ID}] 🔄 Attempt \${attempts}/\${maxAttempts}: Trying OpenRouter...\`);
+        result = await generateWithOpenRouter(basePrompt, memory);
+      } catch (orError) {
         try {
-          console.log(\`[\${ACCOUNT_ID}] 🤖 Pollinations failed, trying OpenRouter...\`);
-          result = await generateWithOpenRouter(basePrompt, memory);
-        } catch (orError) {
-          console.log(\`[\${ACCOUNT_ID}] 🤖 OpenRouter failed, falling back to Gemini...\`);
+          console.log(\`[\${ACCOUNT_ID}] 🤖 OpenRouter failed, trying Pollinations.ai...\`);
+          result = await generateWithPollinationsText(basePrompt, memory);
+        } catch (pollError) {
+          console.log(\`[\${ACCOUNT_ID}] 🤖 Pollinations failed, falling back to Gemini...\`);
           try {
             result = await generateWithGemini(basePrompt, memory);
           } catch (geminiError) {
