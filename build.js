@@ -241,17 +241,13 @@ try {
         }
     });
 
-    // Generate comprehensive README
-    const { generateREADME } = require('./readme-generator');
-    const readme = generateREADME(newBuildNumber);
-    fs.writeFileSync(path.join(distDir, 'README.md'), readme);
-    console.log('   ✓ README.md');
-
-    // Copy DEPLOYMENT_GUIDE as DOKUMENTASI.md
-    const deploymentGuidePath = path.join(__dirname, 'DEPLOYMENT_GUIDE.md');
-    if (fs.existsSync(deploymentGuidePath)) {
-        fs.copyFileSync(deploymentGuidePath, path.join(distDir, 'DOKUMENTASI.md'));
-        console.log('   ✓ DOKUMENTASI.md');
+    // Copy DOKUMENTASI.html from root
+    const dokumentasiPath = path.join(rootDir, 'DOKUMENTASI.html');
+    if (fs.existsSync(dokumentasiPath)) {
+        fs.copyFileSync(dokumentasiPath, path.join(distDir, 'DOKUMENTASI.html'));
+        console.log('   ✓ DOKUMENTASI.html (bilingual)');
+    } else {
+        console.log('   ⚠ DOKUMENTASI.html not found in root');
     }
 
     try {
