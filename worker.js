@@ -5572,9 +5572,15 @@ CONTOH STYLE (jangan copy, buat yang baru!):
 
       // Clean up the status
       let cleanStatus = result.status
+        .replace(/^(Status:|Caption:|Post:|Here is|Here's|Sure|Tentu|Berikut|Ini adalah)\\s*.*?:/gmi, '')
         .replace(/^(Status:|Caption:|Post:)\\s*/gi, '')
         .replace(/^["']|["']$/g, '')
         .trim();
+
+      // Aggressive cleanup for "Status: ..." pattern if it survived
+      if (cleanStatus.toLowerCase().startsWith("status: \\"")) {
+        cleanStatus = cleanStatus.substring(9).replace(/"$/, '');
+      }
 
       // Check similarity
       if (memory.isTooSimilar(cleanStatus)) {
