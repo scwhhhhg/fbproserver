@@ -241,30 +241,18 @@ try {
         }
     });
 
-    // Create Professional README
-    const readme = `# FacebookPro Blaster - SECURE EDITION (Build #${newBuildNumber})
-
-## Quick Installation
-1. Install Node.js (Version 20+ Recommended)
-2. Open terminal in this folder
-3. Run: \`npm install\`
-4. Configure your accounts in the \`accounts/\` folder
-5. Launch: \`node start\`
-
-## Security & Architecture
-This version uses a **Remote-Centralized Logic Architecture**:
-✓ **Bytecode Compilation**: Core engine is pre-compiled to V8 bytecode (.jsc).
-✓ **Logic Separation**: Key bot algorithms are served dynamically from secure Cloudflare Workers.
-✓ **Zero-Footprint**: No readable JavaScript logic for bots exists on the client machine.
-✓ **Integrity Protection**: Files are protected against unauthorized modification.
-
-## Support & Documentation
-Please refer to \`DOKUMENTASI.html\` for full instructions in Indonesian and English.
-
-Built on: ${new Date().toISOString()}
-`;
-    fs.writeFileSync(path.join(distDir, 'README.txt'), readme);
+    // Generate comprehensive README
+    const { generateREADME } = require('./readme-generator');
+    const readme = generateREADME(newBuildNumber);
     fs.writeFileSync(path.join(distDir, 'README.md'), readme);
+    console.log('   ✓ README.md');
+
+    // Copy DEPLOYMENT_GUIDE as DOKUMENTASI.md
+    const deploymentGuidePath = path.join(__dirname, 'DEPLOYMENT_GUIDE.md');
+    if (fs.existsSync(deploymentGuidePath)) {
+        fs.copyFileSync(deploymentGuidePath, path.join(distDir, 'DOKUMENTASI.md'));
+        console.log('   ✓ DOKUMENTASI.md');
+    }
 
     try {
         const zipName = await createZipArchive(newBuildNumber);

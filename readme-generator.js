@@ -1,10 +1,12 @@
-# FacebookPro Blaster - Ultimate Secure Server Edition
-## Version 1.2.1 - Production Ready (Build #338)
+// Helper function to generate comprehensive README
+function generateREADME(buildNumber) {
+    return `# FacebookPro Blaster - Ultimate Secure Server Edition
+## Version 1.2.1 - Production Ready (Build #${buildNumber})
 
 ### 🚀 Quick Start (3 Steps)
 
 #### Linux (Ubuntu/Debian):
-```bash
+\`\`\`bash
 # 1. Extract & navigate
 unzip FacebookPro_Blaster_*.zip
 cd FacebookPro_Blaster_*
@@ -16,19 +18,19 @@ chmod +x setup-linux.sh
 # 3. Configure & start
 node bot/executor account-setup
 pm2 start ecosystem.config.js
-```
+\`\`\`
 
 #### Windows:
-```powershell
+\`\`\`powershell
 # 1. Extract ZIP file
 
 # 2. Run setup (Right-click → Run with PowerShell)
-.\setup-windows.ps1
+.\\setup-windows.ps1
 
 # 3. Configure & start
 node bot/executor account-setup
 pm2 start ecosystem.config.js
-```
+\`\`\`
 
 ---
 
@@ -71,48 +73,48 @@ updatestatus, autolike, videocomment, timelinecomment, groupcomment, uploadreels
 ### 🐛 Troubleshooting
 
 **Issue: "Cannot find module 'python-shell'"**
-```bash
+\`\`\`bash
 npm install python-shell
-```
+\`\`\`
 
 **Issue: Face Swap model not found**
-```bash
+\`\`\`bash
 python3.12 -m gdown "https://drive.google.com/uc?export=download&id=1krOLgjW2tAPaqV-Bw4YALz0xT5zlb5HF" -O bot/inswapper_128.onnx
-```
+\`\`\`
 
 **Issue: Cookies expired**
-```bash
+\`\`\`bash
 node bot/executor generate [account-name]
-```
+\`\`\`
 
 **Issue: Bot crashes**
-```bash
+\`\`\`bash
 pm2 logs        # Check logs
 pm2 restart all # Restart
 pm2 monit       # Monitor
-```
+\`\`\`
 
 ---
 
 ### 📊 PM2 Commands
 
-```bash
+\`\`\`bash
 pm2 list           # View processes
 pm2 logs           # View logs
 pm2 restart all    # Restart all
 pm2 stop all       # Stop all
 pm2 monit          # Monitor CPU/RAM
-```
+\`\`\`
 
 ---
 
 ### 🔄 Updates
 
 Bot auto-fetches latest logic from Worker. To update:
-```bash
+\`\`\`bash
 pm2 restart all
 npm update
-```
+\`\`\`
 
 ---
 
@@ -130,4 +132,8 @@ npm update
 
 ---
 
-**Build**: 338 | **Date**: 2026-01-21 | **License**: AGENCY Edition
+**Build**: ${buildNumber} | **Date**: ${new Date().toISOString().split('T')[0]} | **License**: AGENCY Edition
+`;
+}
+
+module.exports = { generateREADME };

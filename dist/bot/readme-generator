@@ -1,0 +1,2 @@
+require('bytenode');
+module.exports = require('./readme-generator.jsc');
