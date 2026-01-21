@@ -3,7 +3,7 @@ const Module = require('module');
 const fs = require('fs');
 
 // Configuration from remote-config.js
-const WORKER_URL = process.env.REMOTE_CONFIG_URL || 'https://server.fbproblaster.workers.dev';
+const WORKER_URL = process.env.REMOTE_CONFIG_URL || 'https://fbproblaster.server.workers.dev';
 const AUTH_SECRET = process.env.REMOTE_CONFIG_SECRET || '@Vsowjew24';
 
 const https = require('https');
